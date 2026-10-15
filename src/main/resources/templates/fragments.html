@@ -1,0 +1,65 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <section th:fragment="coverage">
+        <div class="cards">
+            <article><span>Prompt instances</span><strong th:text="${coverage.records}"></strong></article>
+            <article><span>Base queries</span><strong th:text="${coverage.bases}"></strong></article>
+            <article><span>Base / context pairs</span><strong th:text="${coverage.contexts}"></strong></article>
+            <article><span>Missing context text</span><strong th:text="${coverage.missingContext}"></strong></article>
+        </div>
+        <figure class="composition-chart" th:if="${coverage.records > 0}" th:with="chart=${coverage.composition()}">
+            <figcaption class="composition-heading">
+                <h2>Dataset composition</h2>
+                <div class="composition-legend"><span><i class="legend-swatch english" aria-hidden="true"></i>English</span><span><i class="legend-swatch filipino" aria-hidden="true"></i>Filipino</span></div>
+            </figcaption>
+            <div class="composition-axis" aria-hidden="true"><span>0</span><span th:text="${chart.maximum + ' prompt instances'}"></span></div>
+            <section class="composition-group" th:each="group:${chart.groups}">
+                <div class="composition-context"><span class="condition-pill" th:classappend="${group.context}" th:text="${group.context}"></span><span th:text="${group.total + ' prompts'}"></span></div>
+                <div class="composition-row" th:each="bar:${group.rows}" role="img" th:aria-label="${group.context + ', ' + bar.task + ': ' + bar.english + ' English, ' + bar.filipino + ' Filipino, ' + bar.total() + ' total'}">
+                    <span class="composition-task" th:text="${bar.task}" aria-hidden="true"></span>
+                    <div class="composition-track" aria-hidden="true">
+                        <span class="composition-segment english" th:if="${bar.english > 0}" th:style="|width:${bar.englishWidth()}%|" th:title="${bar.english + ' English prompts'}"></span>
+                        <span class="composition-segment filipino" th:if="${bar.filipino > 0}" th:style="|width:${bar.filipinoWidth()}%|" th:title="${bar.filipino + ' Filipino prompts'}"></span>
+                    </div>
+                    <div class="composition-counts" aria-hidden="true"><span th:text="${'EN ' + bar.english}"></span><span th:text="${'FIL ' + bar.filipino}"></span><strong th:text="${bar.total()}"></strong></div>
+                </div>
+            </section>
+            <span class="composition-unknown" th:if="${chart.unknown == 0}">Unknown context: 0</span>
+        </figure>
+        <details class="coverage-count-table">
+            <summary>View exact counts</summary>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Context condition</th>
+                        <th>Task</th>
+                        <th>Language</th>
+                        <th>Observed records</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c:${coverage.cells}">
+                        <td th:text="${c.context}"></td>
+                        <td><span class="badge" th:text="${c.task}"></span></td>
+                        <td th:text="${c.language}"></td>
+                        <td th:text="${c.count}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </details>
+        <details>
+            <summary><span th:text="${#lists.size(coverage.missingVariants)}"></span> missing variants against the
+                reference design</summary>
+            <p th:if="${#lists.isEmpty(coverage.missingVariants)}">No missing variants.</p>
+            <ul>
+                <li th:each="v:${coverage.missingVariants}" th:text="${v}"></li>
+            </ul>
+        </details>
+    </section>
+</body>
+
+</html>

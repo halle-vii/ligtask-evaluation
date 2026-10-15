@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ligtask
+      POSTGRES_USER: ligtask
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-local-ligtask}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ligtask_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ligtask -d ligtask"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+volumes:
+  ligtask_pg:

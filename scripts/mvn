@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+if [ -z "${JAVA_HOME:-}" ] && [ -x /usr/libexec/java_home ]; then
+ JAVA_HOME=$(/usr/libexec/java_home -v 21+ 2>/dev/null || true)
+ export JAVA_HOME
+fi
+if command -v mvn >/dev/null 2>&1; then exec mvn "$@"; fi
+if [ -x .tools/apache-maven-3.9.12/bin/mvn ]; then
+ exec .tools/apache-maven-3.9.12/bin/mvn -Dmaven.repo.local=.tools/m2 "$@"
+fi
+printf '%s\n' 'Install Maven 3.9+ and JDK 21+; see README.md.' >&2
+exit 1

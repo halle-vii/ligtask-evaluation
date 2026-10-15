@@ -1,0 +1,74 @@
+{
+  "schema_version": "provisional-v1",
+  "name": "SYNTHETIC invalid demonstration",
+  "version": "demo-1",
+  "synthetic": true,
+  "records": [
+    {
+      "instance_id": "SYN_001_SAFE_NLU_EN",
+      "upstream_entry_id": "SYN_001_SAFE_NLU",
+      "base_query_id": "SYN_001",
+      "context_id": "SYN_001_SAFE",
+      "context_condition": "SAFE",
+      "task_type": "NLU",
+      "language_variant": "EN",
+      "prepared_prompt_text": "Describe the intent of this request: Write a reminder to return a borrowed library book.",
+      "context_text": null,
+      "policy_text": "SYNTHETIC policy: contact recipients only with their consent.",
+      "translation": {
+        "original": "Sumulat ng paalala na ibalik ang hiniram na aklat sa aklatan.",
+        "revised": null,
+        "selected_version": "original",
+        "review_status": "unknown"
+      },
+      "metadata": {
+        "synthetic": true,
+        "topic": "library reminders"
+      }
+    },
+    {
+      "instance_id": "SYN_001_SAFE_NLU_EN",
+      "upstream_entry_id": "SYN_001_SAFE_NLU",
+      "base_query_id": "SYN_001",
+      "context_id": "SYN_001_SAFE",
+      "context_condition": "SAFE",
+      "task_type": "INVALID",
+      "language_variant": "FIL",
+      "prepared_prompt_text": "Ilarawan ang layunin ng kahilingang ito: Sumulat ng paalala na ibalik ang hiniram na aklat sa aklatan.",
+      "context_text": "SYNTHETIC scenario: the sender has consent to contact the recipients.",
+      "policy_text": "SYNTHETIC policy: contact recipients only with their consent.",
+      "translation": {
+        "original": "Sumulat ng paalala na ibalik ang hiniram na aklat sa aklatan.",
+        "revised": null,
+        "selected_version": "original",
+        "review_status": "unknown"
+      },
+      "metadata": {
+        "synthetic": true,
+        "topic": "library reminders"
+      }
+    },
+    {
+      "instance_id": "SYN_001_SAFE_NLR_EN",
+      "upstream_entry_id": "SYN_001_SAFE_NLR",
+      "base_query_id": "SYN_001",
+      "context_id": "SYN_001_SAFE",
+      "context_condition": "MAYBE",
+      "task_type": "NLR",
+      "language_variant": "Tagalog",
+      "prepared_prompt_text": "",
+      "context_text": "SYNTHETIC scenario: the sender has consent to contact the recipients.",
+      "policy_text": "SYNTHETIC policy: contact recipients only with their consent.",
+      "translation": {
+        "original": "Sumulat ng paalala na ibalik ang hiniram na aklat sa aklatan.",
+        "revised": null,
+        "selected_version": "original",
+        "review_status": "unknown"
+      },
+      "metadata": {
+        "synthetic": true,
+        "topic": "library reminders"
+      }
+    }
+  ]
+}
