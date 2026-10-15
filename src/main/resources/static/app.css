@@ -28,3 +28,8 @@
 .composition-context .condition-pill.SAFE{background:#dbfce5;color:#036800}
 .composition-context .condition-pill.UNSAFE{background:#ffe1e1;color:#a20000}
 .composition-context .condition-pill.UNKNOWN{background:#eef0f3;color:#626976}
+
+/* Shared top navigation for dataset and evaluation pages. */
+.site-top,.eval-top{min-height:76px;padding:16px 28px;gap:24px}
+.site-top>a:not(.brand),.eval-top>a:not(.brand){font-size:14px;text-decoration:none}
+@media(max-width:1100px){.site-top,.eval-top{flex-wrap:wrap;gap:14px}}
