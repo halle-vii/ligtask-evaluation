@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{evaluation-parts :: head('Runs')}"></head>
+<body class="eval-app">
+<header th:replace="~{evaluation-parts :: top}"></header>
+<div class="eval-shell">
+  <nav th:replace="~{evaluation-parts :: navigation('runs')}"></nav>
+  <main class="eval-main runs-main" th:attr="data-prompt-count=${promptCount}">
+    <div class="runs-heading"><div><h1>Runs</h1><p class="muted">Set up a zero-shot evaluation and review saved responses.</p></div><span class="run-status">Execution not connected</span></div>
+    <div class="run-tabs" role="tablist" aria-label="Run workspace">
+      <button id="setup-tab" type="button" role="tab" aria-selected="true" aria-controls="setup-panel" data-run-tab="setup">Run setup</button>
+      <button id="progress-tab" type="button" role="tab" aria-selected="false" aria-controls="progress-panel" tabindex="-1" data-run-tab="progress">Progress</button>
+      <button id="history-tab" type="button" role="tab" aria-selected="false" aria-controls="history-panel" tabindex="-1" data-run-tab="history">Saved runs</button>
+    </div>
+
+    <section id="setup-panel" class="run-panel" role="tabpanel" aria-labelledby="setup-tab">
+      <div class="run-setup-grid">
+        <div>
+          <section class="run-card">
+            <h2>Dataset</h2>
+            <p class="run-dataset-name" th:text="${dataset.name}"></p>
+            <div class="run-facts"><span><strong th:text="${promptCount}"></strong> prompts</span><span>All tasks, languages and context conditions</span></div>
+          </section>
+          <section class="run-card">
+            <div class="run-card-heading"><h2>Select models</h2><button id="select-all-models" type="button" class="run-text-button">Select all</button></div>
+            <div class="run-model-list">
+              <label class="run-model-option" th:each="model:${models}">
+                <input type="checkbox" name="run-model" th:value="${model.key}">
+                <span th:text="${model.name}"></span><span class="connection-status">Not configured</span>
+              </label>
+            </div>
+          </section>
+          <section class="run-card">
+            <h2>Stored input preview</h2>
+            <p class="muted run-caption">Review a sample of the stored instruction, query, context and expected response format. Source labels are excluded.</p>
+            <label class="run-field-label" for="run-input-choice">Sample prompt</label>
+            <select id="run-input-choice"><option th:each="input,position:${inputPreviews}" th:value="${position.index}" th:text="${input.identifier}"></option></select>
+            <pre class="run-input-preview" th:each="input,position:${inputPreviews}" th:attr="data-run-input=${position.index}" th:hidden="${!position.first}" th:text="${input.content}"></pre>
+          </section>
+        </div>
+        <aside class="run-summary run-card" aria-label="Run summary">
+          <h2>Run summary</h2>
+          <dl><dt>Prompting</dt><dd>Zero-shot</dd><dt>Selected models</dt><dd data-selected-model-count>0</dd><dt>Responses per prompt / model</dt><dd>1</dd><dt>Automatic retries</dt><dd>Off</dd></dl>
+          <div class="request-estimate"><span>Planned requests</span><strong data-planned-requests aria-live="polite">0</strong></div>
+          <p class="run-caption">One response per prompt per selected model. Saved responses will be reused.</p>
+          <button type="button" id="start-run" disabled aria-describedby="run-availability">Start run</button>
+          <p id="run-availability" class="muted run-caption">Model connections are required before execution.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="progress-panel" class="run-panel" role="tabpanel" aria-labelledby="progress-tab" hidden>
+      <div class="run-card run-empty"><span class="run-status">Not started</span><h2>No active run</h2><p>Progress will appear here when a connected model starts processing the dataset.</p><button type="button" class="run-secondary-button" data-open-run-tab="setup">Back to setup</button></div>
+      <div class="run-progress-summary"><article class="run-card"><span>Planned requests</span><strong data-planned-requests>0</strong></article><article class="run-card"><span>Completed</span><strong>0</strong></article><article class="run-card"><span>Failed</span><strong>0</strong></article><article class="run-card"><span>Uncertain</span><strong>0</strong></article></div>
+      <div class="run-card"><h2>Model progress</h2><div class="run-progress-row" th:each="model:${models}"><span th:text="${model.name}"></span><progress value="0" max="1" th:aria-label="${model.name + ' progress'}"></progress><span class="muted">Not started</span></div></div>
+    </section>
+
+    <section id="history-panel" class="run-panel" role="tabpanel" aria-labelledby="history-tab" hidden>
+      <div class="run-card run-empty"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><h2>No saved runs</h2><p>Completed evaluations and their saved responses will appear here.</p><button type="button" class="run-secondary-button" data-open-run-tab="setup">Set up evaluation</button></div>
+    </section>
+    <script src="/runs.js" defer></script>
+  </main>
+</div>
+</body>
+</html>

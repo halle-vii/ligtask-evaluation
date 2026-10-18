@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ligtask:tfg-en-fil-v1",
+  "title": "LIGTask TFG English / Filipino dataset structure",
+  "description": "Upload contract; source gold is metadata, not independently annotated human ground truth.",
+  "type": "array",
+  "minItems": 1,
+  "maxItems": 3333,
+  "items": {
+    "type": "object",
+    "properties": {
+      "base_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "query": {
+        "type": "string",
+        "minLength": 1
+      },
+      "source_query_en": {
+        "type": "string",
+        "minLength": 1
+      },
+      "category": {
+        "type": "string",
+        "minLength": 1
+      },
+      "context_intended_to_be_safe": {
+        "type": "boolean"
+      },
+      "context": {
+        "$ref": "#/$defs/context"
+      },
+      "processing_stage": {
+        "type": "string",
+        "minLength": 1
+      },
+      "task_derivatives": {
+        "type": "object",
+        "properties": {
+          "nlu": {
+            "$ref": "#/$defs/nlu"
+          },
+          "nlr": {
+            "$ref": "#/$defs/nlr"
+          },
+          "nlg": {
+            "$ref": "#/$defs/nlg"
+          }
+        },
+        "required": [
+          "nlu",
+          "nlr",
+          "nlg"
+        ],
+        "additionalProperties": false
+      },
+      "language": {
+        "type": "string",
+        "enum": [
+          "en",
+          "fil"
+        ]
+      }
+    },
+    "required": [
+      "base_id",
+      "query",
+      "source_query_en",
+      "category",
+      "context_intended_to_be_safe",
+      "context",
+      "processing_stage",
+      "task_derivatives",
+      "language"
+    ],
+    "additionalProperties": false
+  },
+  "$defs": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "sender": {
+          "type": "object",
+          "properties": {
+            "nature_of_the_interaction": {
+              "type": "string",
+              "minLength": 1
+            },
+            "platform_type": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "nature_of_the_interaction",
+            "platform_type"
+          ],
+          "additionalProperties": false
+        },
+        "recipient": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "previous_experience": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "purpose_of_query": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "demographics": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "previous_experience",
+                    "purpose_of_query",
+                    "demographics"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "background"
+          ],
+          "additionalProperties": false
+        },
+        "transmission_principle": {
+          "type": "object",
+          "properties": {
+            "urgency": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sender_purpose": {
+              "type": "string",
+              "minLength": 1
+            },
+            "confidentiality": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_accountability": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "sender_purpose",
+            "confidentiality",
+            "source_accountability"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "sender",
+        "recipient",
+        "transmission_principle"
+      ],
+      "additionalProperties": false
+    },
+    "input": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "base_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "category": {
+              "type": "string",
+              "minLength": 1
+            },
+            "context": {
+              "$ref": "#/$defs/context"
+            },
+            "language": {
+              "type": "string",
+              "enum": [
+                "en"
+              ]
+            }
+          },
+          "required": [
+            "base_id",
+            "query",
+            "category",
+            "context",
+            "language"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "base_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "category": {
+              "type": "string",
+              "minLength": 1
+            },
+            "context": {
+              "$ref": "#/$defs/context"
+            },
+            "language": {
+              "type": "string",
+              "enum": [
+                "fil"
+              ]
+            },
+            "source_query_en": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "base_id",
+            "query",
+            "category",
+            "context",
+            "language",
+            "source_query_en"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "nlu": {
+      "type": "object",
+      "properties": {
+        "task_code": {
+          "type": "string",
+          "enum": [
+            "NLU"
+          ]
+        },
+        "task_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "classification": {
+              "type": "string",
+              "minLength": 1
+            },
+            "classification_rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "label": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "classification",
+            "classification_rationale",
+            "label",
+            "rationale"
+          ],
+          "additionalProperties": false
+        },
+        "gold": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binary_rating": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "rating_mean": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "reference_source": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "label",
+            "binary_rating",
+            "rating_mean",
+            "reference_source"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "task_code",
+        "task_name",
+        "capability",
+        "research_role",
+        "instruction",
+        "input",
+        "output_schema",
+        "gold"
+      ],
+      "additionalProperties": false
+    },
+    "nlr": {
+      "type": "object",
+      "properties": {
+        "task_code": {
+          "type": "string",
+          "enum": [
+            "NLR"
+          ]
+        },
+        "task_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "claim": {
+              "type": "string",
+              "minLength": 1
+            },
+            "supporting_arguments": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "counterarguments": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "relationships": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "relation": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": [
+                  "source",
+                  "target",
+                  "relation"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "label": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "claim",
+            "supporting_arguments",
+            "counterarguments",
+            "relationships",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        "gold": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binary_rating": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "rating_mean": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "reference_source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_label": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "label",
+            "binary_rating",
+            "rating_mean",
+            "reference_source",
+            "source_label"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "task_code",
+        "task_name",
+        "capability",
+        "research_role",
+        "instruction",
+        "input",
+        "output_schema",
+        "gold"
+      ],
+      "additionalProperties": false
+    },
+    "nlg": {
+      "type": "object",
+      "properties": {
+        "task_code": {
+          "type": "string",
+          "enum": [
+            "NLG"
+          ]
+        },
+        "task_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "response": {
+              "type": "string",
+              "minLength": 1
+            },
+            "label": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "safety_rationale": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "response",
+            "label",
+            "safety_rationale"
+          ],
+          "additionalProperties": false
+        },
+        "gold": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binary_rating": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            },
+            "rating_mean": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "reference_source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_label": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "label",
+            "binary_rating",
+            "rating_mean",
+            "reference_source",
+            "source_label"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "task_code",
+        "task_name",
+        "capability",
+        "research_role",
+        "instruction",
+        "input",
+        "output_schema",
+        "gold"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

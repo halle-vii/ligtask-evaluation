@@ -8,7 +8,20 @@ import org.springframework.web.server.ResponseStatusException;
 public final class EvaluationView {
     private EvaluationView() {}
 
-    public record ModelChoice(String key, String name) {}
+    public record ModelChoice(String key, String name) {
+        public String logo() {
+            String icon = switch (key) {
+                case "gpt-4o", "gpt-4o-mini" -> "openai";
+                case "claude-3-5-sonnet" -> "claude-color";
+                case "llama-3-70b-instruct" -> "meta-color";
+                case "qwen2-72b" -> "qwen-color";
+                case "mixtral-8x7b" -> "mistral-color";
+                case "dolphin-2-9-llama3-70b" -> "dolphin";
+                default -> throw new IllegalStateException("Missing model logo: " + key);
+            };
+            return "/assets/models/" + icon + ".svg";
+        }
+    }
     // Design reference labels, not configured providers or claims of model availability.
     public static final List<ModelChoice> MODELS = List.of(
         new ModelChoice("gpt-4o", "GPT-4o"),

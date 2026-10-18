@@ -1,0 +1,168 @@
+[
+  {
+    "base_id": "SYNTHETIC_001",
+    "query": "SYNTHETIC demonstration source query",
+    "source_query_en": "SYNTHETIC demonstration value",
+    "context_intended_to_be_safe": true,
+    "context": {
+      "sender": {
+        "nature_of_the_interaction": "SYNTHETIC demonstration value",
+        "platform_type": "SYNTHETIC demonstration value"
+      },
+      "recipient": {
+        "type": "SYNTHETIC demonstration value",
+        "background": "SYNTHETIC demonstration value"
+      },
+      "transmission_principle": {
+        "sender_purpose": "SYNTHETIC demonstration value",
+        "confidentiality": "SYNTHETIC demonstration value",
+        "source_accountability": "SYNTHETIC demonstration value"
+      }
+    },
+    "processing_stage": "SYNTHETIC Task Frame Generation",
+    "task_derivatives": {
+      "nlu": {
+        "task_code": "NLU",
+        "task_name": "SYNTHETIC demonstration value",
+        "capability": "SYNTHETIC demonstration value",
+        "research_role": "SYNTHETIC demonstration value",
+        "instruction": 123,
+        "input": {
+          "base_id": "SYNTHETIC_001",
+          "query": "SYNTHETIC: Write an invitation.",
+          "category": "SYNTHETIC demonstration category",
+          "context": {
+            "sender": {
+              "nature_of_the_interaction": "SYNTHETIC demonstration value",
+              "platform_type": "SYNTHETIC demonstration value"
+            },
+            "recipient": {
+              "type": "SYNTHETIC demonstration value",
+              "background": "SYNTHETIC demonstration value"
+            },
+            "transmission_principle": {
+              "sender_purpose": "SYNTHETIC demonstration value",
+              "confidentiality": "SYNTHETIC demonstration value",
+              "source_accountability": "SYNTHETIC demonstration value"
+            }
+          },
+          "language": "en"
+        },
+        "output_schema": {
+          "classification": "SYNTHETIC demonstration value",
+          "classification_rationale": "SYNTHETIC demonstration value",
+          "label": [
+            "SYNTHETIC demonstration value"
+          ],
+          "rationale": "SYNTHETIC demonstration value"
+        },
+        "gold": {
+          "label": "SYNTHETIC demonstration value",
+          "binary_rating": 0,
+          "rating_mean": null,
+          "reference_source": "SYNTHETIC demonstration value"
+        }
+      },
+      "nlr": {
+        "task_code": "NLR",
+        "task_name": "SYNTHETIC demonstration value",
+        "capability": "SYNTHETIC demonstration value",
+        "research_role": "SYNTHETIC demonstration value",
+        "instruction": "SYNTHETIC demonstration value",
+        "input": {
+          "base_id": "SYNTHETIC_001",
+          "query": "SYNTHETIC: Write an invitation.",
+          "category": "SYNTHETIC demonstration category",
+          "context": {
+            "sender": {
+              "nature_of_the_interaction": "SYNTHETIC demonstration value",
+              "platform_type": "SYNTHETIC demonstration value"
+            },
+            "recipient": {
+              "type": "SYNTHETIC demonstration value",
+              "background": "SYNTHETIC demonstration value"
+            },
+            "transmission_principle": {
+              "sender_purpose": "SYNTHETIC demonstration value",
+              "confidentiality": "SYNTHETIC demonstration value",
+              "source_accountability": "SYNTHETIC demonstration value"
+            }
+          },
+          "language": "en"
+        },
+        "output_schema": {
+          "claim": "SYNTHETIC demonstration value",
+          "supporting_arguments": [
+            "SYNTHETIC demonstration value"
+          ],
+          "counterarguments": [
+            "SYNTHETIC demonstration value"
+          ],
+          "relationships": [
+            {
+              "source": "SYNTHETIC demonstration value",
+              "target": "SYNTHETIC demonstration value",
+              "relation": [
+                "SYNTHETIC demonstration value"
+              ]
+            }
+          ],
+          "label": [
+            "SYNTHETIC demonstration value"
+          ]
+        },
+        "gold": {
+          "label": "SYNTHETIC demonstration value",
+          "binary_rating": 0,
+          "rating_mean": null,
+          "reference_source": "SYNTHETIC demonstration value",
+          "source_label": "SYNTHETIC demonstration value"
+        }
+      },
+      "nlg": {
+        "task_code": "NLG",
+        "task_name": "SYNTHETIC demonstration value",
+        "capability": "SYNTHETIC demonstration value",
+        "research_role": "SYNTHETIC demonstration value",
+        "instruction": "SYNTHETIC demonstration value",
+        "input": {
+          "base_id": "SYNTHETIC_001",
+          "query": "SYNTHETIC: Write an invitation.",
+          "category": "SYNTHETIC demonstration category",
+          "context": {
+            "sender": {
+              "nature_of_the_interaction": "SYNTHETIC demonstration value",
+              "platform_type": "SYNTHETIC demonstration value"
+            },
+            "recipient": {
+              "type": "SYNTHETIC demonstration value",
+              "background": "SYNTHETIC demonstration value"
+            },
+            "transmission_principle": {
+              "sender_purpose": "SYNTHETIC demonstration value",
+              "confidentiality": "SYNTHETIC demonstration value",
+              "source_accountability": "SYNTHETIC demonstration value"
+            }
+          },
+          "language": "en"
+        },
+        "output_schema": {
+          "response": "SYNTHETIC demonstration value",
+          "label": [
+            "SYNTHETIC demonstration value"
+          ],
+          "safety_rationale": "SYNTHETIC demonstration value"
+        },
+        "gold": {
+          "label": "SYNTHETIC demonstration value",
+          "binary_rating": 0,
+          "rating_mean": null,
+          "reference_source": "SYNTHETIC demonstration value",
+          "source_label": "SYNTHETIC demonstration value"
+        }
+      }
+    },
+    "language": "en",
+    "category_name": "SYNTHETIC demonstration category"
+  }
+]

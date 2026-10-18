@@ -28,8 +28,18 @@
             </section>
             <span class="composition-unknown" th:if="${chart.unknown == 0}">Unknown context: 0</span>
         </figure>
-        <details class="coverage-count-table">
-            <summary>View exact counts</summary>
+        <div class="coverage-support">
+          <div class="coverage-toolbar" aria-label="Coverage information">
+            <p class="coverage-status" th:if="${#lists.isEmpty(coverage.missingVariants)}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>No missing variants</p>
+            <button class="coverage-toggle" type="button" th:unless="${#lists.isEmpty(coverage.missingVariants)}" aria-expanded="false" aria-controls="coverage-missing">Missing variants <span class="coverage-detail-count" th:text="${#lists.size(coverage.missingVariants)}"></span></button>
+            <button class="coverage-toggle" type="button" aria-expanded="false" aria-controls="coverage-counts">View exact counts</button>
+            <button class="coverage-toggle" type="button" th:if="${dataset != null}" aria-expanded="false" aria-controls="coverage-dataset">Dataset details</button>
+          </div>
+          <div id="coverage-missing" class="coverage-disclosure missing-variants" th:unless="${#lists.isEmpty(coverage.missingVariants)}" hidden>
+            <p class="muted coverage-reference">Against the reference design</p>
+            <ul><li th:each="v:${coverage.missingVariants}" th:text="${v}"></li></ul>
+          </div>
+        <div id="coverage-counts" class="coverage-count-table coverage-panel" hidden>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -50,15 +60,12 @@
                 </tbody>
             </table>
         </div>
-        </details>
-        <details>
-            <summary><span th:text="${#lists.size(coverage.missingVariants)}"></span> missing variants against the
-                reference design</summary>
-            <p th:if="${#lists.isEmpty(coverage.missingVariants)}">No missing variants.</p>
-            <ul>
-                <li th:each="v:${coverage.missingVariants}" th:text="${v}"></li>
-            </ul>
-        </details>
+        </div>
+        <div id="coverage-dataset" class="dataset-details coverage-panel" th:if="${dataset != null}" hidden>
+          <dl><dt>Dataset</dt><dd th:text="${dataset.name}"></dd><dt>Schema</dt><dd th:text="${dataset.schema_version}"></dd><dt>Source file</dt><dd th:text="${dataset.source_filename}"></dd><dt>Imported</dt><dd th:text="${dataset.imported_at}"></dd></dl>
+        </div>
+        </div>
+        <script src="/coverage.js" defer></script>
     </section>
 </body>
 

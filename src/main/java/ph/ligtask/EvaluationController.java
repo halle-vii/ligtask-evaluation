@@ -44,6 +44,7 @@ public class EvaluationController {
             UUID datasetId = (UUID) dataset.get("id");
             String suffix = switch (section) {
                 case "coverage" -> "/coverage";
+                case "runs" -> "/runs";
                 case "model", "prompt" -> selected == null ? "/prompts" : "/models/" + selected.key();
                 case "prompts" -> "/prompts";
                 default -> "";
@@ -52,11 +53,16 @@ public class EvaluationController {
         }
         model.addAttribute("datasetLinks", datasetLinks);
         model.addAttribute("models", EvaluationView.MODELS);
+        var modelLinks = new LinkedHashMap<String,String>();
+        for (var choice : EvaluationView.MODELS)
+            modelLinks.put(choice.key(), url("/evaluation/" + id + "/models/" + choice.key(), filters, null));
+        model.addAttribute("modelLinks", modelLinks);
         model.addAttribute("metrics", EvaluationView.METRICS);
         model.addAttribute("filters", filters);
         model.addAttribute("overviewUrl", url("/evaluation/" + id, filters.atPage(0), null));
         model.addAttribute("promptsUrl", url("/evaluation/" + id + "/prompts", filters, null));
         model.addAttribute("coverageUrl", url("/evaluation/" + id + "/coverage", filters, modelKey));
+        model.addAttribute("runsUrl", url("/evaluation/" + id + "/runs", filters, null));
     }
 
     @GetMapping("/{id}")
@@ -69,6 +75,36 @@ public class EvaluationController {
         setup(id, filters, model, "overview", null);
         model.addAttribute("page", EvaluationView.filter(store.records(id), filters));
         return "evaluation-overview";
+    }
+
+    @GetMapping("/{id}/runs")
+    String runs(@PathVariable UUID id,
+                @RequestParam(defaultValue="") String task,
+                @RequestParam(defaultValue="") String language,
+                @RequestParam(defaultValue="") String context,
+                @RequestParam(defaultValue="") String q,
+                @RequestParam(defaultValue="0") int page, Model model) throws Exception {
+        var filters = new EvaluationView.Filters(task, language, context, q, page);
+        setup(id, filters, model, "runs", null);
+        var records = store.records(id);
+        model.addAttribute("promptCount", records.size());
+        var previews = new ArrayList<Map<String,String>>();
+        // Explicit display whitelist: source gold, annotations and raw metadata never enter this preview.
+        for (var row : records.stream().limit(6).toList()) {
+            JsonNode raw = mapper.readTree(row.get("raw_record").toString());
+            var input = mapper.createObjectNode();
+            if (raw.path("task_instruction").isTextual()) input.set("instruction", raw.get("task_instruction"));
+            input.put("query", row.get("prepared_prompt_text").toString());
+            input.put("language", row.get("language_variant").toString());
+            if (raw.path("source_entry").path("context").isObject()) input.set("context", raw.path("source_entry").get("context"));
+            else if (row.get("context_text") != null) input.put("context", row.get("context_text").toString());
+            else input.putNull("context");
+            if (row.get("policy_text") != null) input.put("policy", row.get("policy_text").toString());
+            if (raw.path("output_schema").isObject()) input.set("expected_output_format", raw.get("output_schema"));
+            previews.add(Map.of("identifier", row.get("instance_id").toString(), "content", input.toPrettyString()));
+        }
+        model.addAttribute("inputPreviews", previews);
+        return "evaluation-runs";
     }
 
     @GetMapping("/{id}/coverage")
@@ -151,6 +187,9 @@ public class EvaluationController {
         var attributes = new LinkedHashMap<String,String>();
         if (raw.path("context_attributes").isObject()) raw.path("context_attributes").fields().forEachRemaining(e -> attributes.put(e.getKey(), e.getValue().isTextual() ? e.getValue().asText() : e.getValue().toString()));
         model.addAttribute("contextAttributes", attributes);
+        model.addAttribute("taskInstruction", raw.path("task_instruction").asText(""));
+        model.addAttribute("outputSchema", raw.path("output_schema").isObject() ? raw.path("output_schema").toPrettyString() : "");
+        model.addAttribute("entryLabel", raw.path("import_metadata").has("identifier_origin") ? "Derived task entry ID" : "Upstream entry");
         model.addAttribute("rawJson", raw.toPrettyString());
         return "evaluation-prompt";
     }

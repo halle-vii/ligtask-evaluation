@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties={"spring.datasource.url=${TEST_DB_URL:jdbc:postgresql://127.0.0.1:55432/ligtask_test}"})
 @AutoConfigureMockMvc
 class FoundationTest {
- @Autowired ProvisionalJsonAdapter adapter; @Autowired DatasetStore store; @Autowired JdbcTemplate db; @Autowired MockMvc mvc;
+ @Autowired DatasetImporter importer; @Autowired ProvisionalJsonAdapter adapter; @Autowired DatasetStore store; @Autowired JdbcTemplate db; @Autowired MockMvc mvc;
  byte[] sample() throws Exception{return Files.readAllBytes(Path.of("samples/synthetic-provisional-v1.json"));}
  @BeforeEach void clean(){
   String database=db.queryForObject("select current_database()",String.class);
@@ -40,20 +40,20 @@ class FoundationTest {
  }
  @Test void previewThenConfirmAndRepeatProtection() throws Exception {
   var session=new MockHttpSession();
-  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","sample.json","application/json",sample())).session(session).with(csrf())).andExpect(status().isOk()).andExpect(view().name("preview")).andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm import")));
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","sample.json","application/json",TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))).session(session).with(csrf())).andExpect(status().isOk()).andExpect(view().name("preview")).andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm import")));
   assertThat(store.all()).isEmpty();
   var pending=(WebController.Pending)session.getAttribute("pending");
   var result=mvc.perform(post("/import").session(session).with(csrf()).param("token",pending.token())).andExpect(status().is3xxRedirection()).andReturn();
-  assertThat(store.all()).hasSize(1);UUID id=(UUID)store.all().get(0).get("id");assertThat(store.records(id)).hasSize(24);
+  assertThat(store.all()).hasSize(1);UUID id=(UUID)store.all().get(0).get("id");assertThat(store.records(id)).hasSize(12);
   mvc.perform(get(result.getResponse().getRedirectedUrl())).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Dataset composition")));
   mvc.perform(get("/evaluation/"+id+"/prompts").param("q","paanyaya")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("paanyaya")));
   mvc.perform(post("/import").session(session).with(csrf()).param("token",pending.token())).andExpect(redirectedUrl("/"));
-  mvc.perform(multipart("/preview").file(new MockMultipartFile("file",sample())).with(csrf())).andExpect(content().string(org.hamcrest.Matchers.containsString("already imported")));
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file",TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))).with(csrf())).andExpect(content().string(org.hamcrest.Matchers.containsString("already imported")));
   assertThat(store.all()).hasSize(1);
  }
  @Test void invalidUploadsAndCsrfCannotImport() throws Exception {
   var session=new MockHttpSession();
-  mvc.perform(multipart("/preview").file(new MockMultipartFile("file",Files.readAllBytes(Path.of("samples/invalid-provisional.json")))).session(session).with(csrf())).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Import blocked")));
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file",Files.readAllBytes(Path.of("samples/invalid-provisional.json")))).session(session).with(csrf())).andExpect(status().isOk()).andExpect(view().name("home")).andExpect(content().string(org.hamcrest.Matchers.containsString("Import blocked")));
   assertThat(session.getAttribute("pending")).isNull();assertThat(store.all()).isEmpty();
   mvc.perform(post("/import").param("token","fake")).andExpect(status().isForbidden());
   mvc.perform(get("/datasets/"+UUID.randomUUID())).andExpect(status().isNotFound());
@@ -154,7 +154,7 @@ class FoundationTest {
  @Test void evaluationSidebarIsSharedAcrossEveryWorkspacePage() throws Exception {
   UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
   UUID prompt=(UUID)store.records(id).get(0).get("id");
-  for(String path:List.of("/evaluation/"+id,"/evaluation/"+id+"/prompts","/evaluation/"+id+"/models/gpt-4o","/evaluation/"+id+"/prompts/"+prompt,"/evaluation/"+id+"/coverage")) {
+  for(String path:List.of("/evaluation/"+id,"/evaluation/"+id+"/prompts","/evaluation/"+id+"/models/gpt-4o","/evaluation/"+id+"/prompts/"+prompt,"/evaluation/"+id+"/coverage","/evaluation/"+id+"/runs")) {
    mvc.perform(get(path)).andExpect(status().isOk())
     .andExpect(content().string(org.hamcrest.Matchers.containsString("aria-label=\"Evaluation navigation\"")))
     .andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"sidebar-toggle\"")))
@@ -205,4 +205,129 @@ class FoundationTest {
   assertThat(Coverage.of(List.of()).composition().groups().stream().flatMap(g->g.rows().stream()))
    .allMatch(r->Double.isFinite(r.englishWidth())&&Double.isFinite(r.filipinoWidth()));
  }
+ @Test void tfgUploadPersistsTaskInputsAndDisplaysInstructionsWithoutHumanGold() throws Exception {
+  var bytes=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  var session=new MockHttpSession();
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","tfg.json","application/json",bytes)).session(session).with(csrf()))
+   .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm import")));
+  var pending=(WebController.Pending)session.getAttribute("pending");
+  assertThat(pending).isNotNull();
+  mvc.perform(post("/import").session(session).with(csrf()).param("token",pending.token())).andExpect(status().is3xxRedirection());
+  UUID id=(UUID)store.all().get(0).get("id");
+  assertThat(store.records(id)).hasSize(12);
+  assertThat(store.dataset(id).get("raw_document").toString()).contains("Replace or confirm through human annotation.");
+  UUID prompt=(UUID)store.records(id).get(0).get("id");
+  mvc.perform(get("/evaluation/"+id+"/prompts/"+prompt)).andExpect(status().isOk())
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Task instruction")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Expected output format")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Derived task entry ID")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Not imported")));
+  var csv=mvc.perform(get("/evaluation/"+id+"/export.csv")).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+  assertThat(csv).doesNotContain("Replace or confirm", "SYNTHETIC instruction");
+  assertThat(csv).contains("NOT_EVALUATED");
+ }
+
+ @Test void incompatibleStructureCannotPreviewOrCommitAndReplacesPendingUpload() throws Exception {
+  var session=new MockHttpSession();
+  var valid=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","valid.json","application/json",valid)).session(session).with(csrf()))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm import")));
+  var token=((WebController.Pending)session.getAttribute("pending")).token();
+  var wrong=TfgJsonAdapterTest.fixture();
+  ((com.fasterxml.jackson.databind.node.ObjectNode)wrong.get(0).path("task_derivatives").path("nlu")).put("extra_field", "not supported");
+  for(byte[] invalid:List.of(sample(),wrong.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+   mvc.perform(multipart("/preview").file(new MockMultipartFile("file","invalid.json","application/json",invalid)).session(session).with(csrf()))
+    .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Import blocked")))
+    .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Confirm import"))));
+   assertThat(session.getAttribute("pending")).isNull();
+  }
+  mvc.perform(post("/import").session(session).with(csrf()).param("token",token)).andExpect(redirectedUrl("/"));
+  assertThat(store.all()).isEmpty();
+  assertThat(db.queryForObject("select count(*) from prompt_instance",Integer.class)).isZero();
+ }
+
+ @Test void asynchronousValidationReturnsErrorsWithoutNavigationAndKeepsConfirmationForValidFiles() throws Exception {
+  var session=new MockHttpSession();
+  var valid=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","valid.json","application/json",valid))
+    .session(session).with(csrf()).accept(org.springframework.http.MediaType.APPLICATION_JSON).header("X-Requested-With","fetch"))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true))
+   .andExpect(jsonPath("$.previewUrl").value("/preview"));
+  assertThat(store.all()).isEmpty();
+  mvc.perform(get("/preview").session(session)).andExpect(status().isOk()).andExpect(view().name("preview"))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm import")));
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","invalid.json","application/json",Files.readAllBytes(Path.of("samples/invalid-structure-tfg.json"))))
+    .session(session).with(csrf()).accept(org.springframework.http.MediaType.APPLICATION_JSON).header("X-Requested-With","fetch"))
+   .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.valid").value(false))
+   .andExpect(jsonPath("$.errors").isNotEmpty()).andExpect(jsonPath("$.previewUrl").isEmpty());
+  assertThat(session.getAttribute("pending")).isNull();
+  mvc.perform(get("/preview").session(session)).andExpect(redirectedUrl("/"));
+  mvc.perform(get("/")).andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"upload-error\"")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("aria-labelledby=\"upload-error-title\"")));
+  assertThat(store.all()).isEmpty();
+ }
+
+ @Test void runWorkspaceUsesActualDatasetAndExcludesSourceGoldFromInputPreviews() throws Exception {
+  var source=TfgJsonAdapterTest.fixture();
+  for(var entry:source) for(var task:entry.path("task_derivatives"))
+   ((com.fasterxml.jackson.databind.node.ObjectNode)task.path("gold")).put("reference_source","PRIVATE_REFERENCE_NOT_MODEL_INPUT");
+  byte[] bytes=source.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  UUID id=store.save(importer.parse(bytes),bytes,"tfg.json");
+  var result=mvc.perform(get("/evaluation/"+id+"/runs"))
+   .andExpect(status().isOk()).andExpect(view().name("evaluation-runs"))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("data-prompt-count=\"12\"")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"start-run\" disabled")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Execution not connected")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("No saved runs")))
+   .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE_REFERENCE_NOT_MODEL_INPUT")))).andReturn();
+  var previews=(List<Map<String,String>>)result.getModelAndView().getModel().get("inputPreviews");
+  assertThat(previews).hasSize(6);
+  assertThat(previews.get(0).get("content")).contains("SYNTHETIC instruction","query","context","expected_output_format").doesNotContain("gold","source_entry","binary_rating");
+  mvc.perform(post("/evaluation/"+id+"/runs").with(csrf())).andExpect(status().isMethodNotAllowed());
+  mvc.perform(get("/evaluation/"+UUID.randomUUID()+"/runs")).andExpect(status().isNotFound());
+  assertThat(store.records(id)).hasSize(12);
+ }
+
+ @Test void switchingDatasetsStaysInRunsAndExistingResultsHaveSavedRunPlaceholder() throws Exception {
+  UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
+  byte[] partial=Files.readAllBytes(Path.of("samples/synthetic-partial.json"));
+  UUID other=store.save(adapter.parse(partial),partial,"partial.json");
+  var result=mvc.perform(get("/evaluation/"+id+"/runs").param("task","NLU").param("page","1")).andExpect(status().isOk()).andReturn();
+  var links=(Map<?,?>)result.getModelAndView().getModel().get("datasetLinks");
+  assertThat(links.get(other).toString()).contains("/evaluation/"+other+"/runs", "task=NLU");
+  assertThat(result.getModelAndView().getModel().get("promptCount")).isEqualTo(24);
+  for(String path:List.of("/evaluation/"+id,"/evaluation/"+id+"/models/gpt-4o")) {
+   mvc.perform(get(path)).andExpect(status().isOk())
+    .andExpect(content().string(org.hamcrest.Matchers.containsString("No saved runs")))
+    .andExpect(content().string(org.hamcrest.Matchers.containsString("Manage runs")));
+  }
+ }
+
+ @Test void sidebarListsEveryModelAndPreservesFiltersWhenSwitchingModels() throws Exception {
+  UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
+  for(String section:List.of("", "/prompts", "/coverage", "/runs", "/models/gpt-4o-mini")) {
+   var result=mvc.perform(get("/evaluation/"+id+section).param("language","FIL").param("task","NLU"))
+    .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"sidebar-divider\""))).andReturn();
+   var links=(Map<?,?>)result.getModelAndView().getModel().get("modelLinks");
+   assertThat(links).hasSize(7);
+   for(var choice:EvaluationView.MODELS) {
+    assertThat(links.get(choice.key()).toString()).contains("/evaluation/"+id+"/models/"+choice.key(),"language=FIL","task=NLU");
+    assertThat(result.getResponse().getContentAsString()).contains("aria-label=\""+choice.name()+" results\"");
+   }
+  }
+ }
+
+ @Test void coverageSupportingInformationOnlyExpandsWhenThereAreMissingVariants() throws Exception {
+  UUID full=store.save(adapter.parse(sample()),sample(),"demo.json");
+  mvc.perform(get("/evaluation/"+full+"/coverage")).andExpect(status().isOk())
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("No missing variants")))
+   .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("class=\"coverage-disclosure missing-variants\""))));
+  byte[] bytes=Files.readAllBytes(Path.of("samples/synthetic-partial.json"));
+  UUID partial=store.save(adapter.parse(bytes),bytes,"partial.json");
+  mvc.perform(get("/evaluation/"+partial+"/coverage")).andExpect(status().isOk())
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("class=\"coverage-disclosure missing-variants\"")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Against the reference design")))
+   .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("No missing variants"))));
+ }
+
 }

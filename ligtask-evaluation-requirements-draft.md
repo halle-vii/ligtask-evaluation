@@ -22,7 +22,7 @@ Confirmed user choices:
 - Human annotation is a separate process for the initial application. Import its outputs; leave room for future integration.
 - Interface/deployment is undecided. The latest user answer supersedes the earlier desktop preference.
 
-One execution-scope decision remains open: does this application invoke the models, import externally generated responses, or support both? Recommended target: invoke selected models and also accept imported results for testing and externally executed experiments; this is a proposal pending confirmation.
+Confirmed by the user on 2026-10-18: this application will invoke selected models using zero-shot prompting and save their results. Execution is planned once per prompt per selected model to conserve credits; saved responses must be reused, duplicates prevented, automatic retries disabled, and potentially billable retries explicitly approved. Importing externally generated model responses remains a proposed extension. The Runs UI is implemented with execution disabled; provider integration is assigned to a colleague. See docs/llm-handoff.md.
 
 Provisional build sequence: establish dataset/annotation/result contracts and import-based evaluation, then add model execution if confirmed. Annotation collection screens are a future extension and are outside the initial release. This sequence does not remove the research requirement to obtain model outputs and human reference labels.
 

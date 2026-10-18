@@ -1,4 +1,6 @@
-# Temporary JSON contract — provisional-v1
+# Legacy fixture contract — provisional-v1
+
+For the accepted upload format, see [TFG import mapping](tfg-import.md). **Uploads no longer accept provisional-v1.** The contract below is retained only for internal normalized validation and legacy test fixtures.
 
 This is a demonstration adapter, **not a demand that the real export use these keys**. Use UTF-8, a root object, and a nonempty `records` array (up to 10,000 records / 10 MB). Keys are case-sensitive; duplicate JSON keys and trailing documents are rejected. Unknown fields are retained in JSONB, not interpreted.
 
