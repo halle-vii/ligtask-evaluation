@@ -17,12 +17,14 @@ public class WebController {
  public WebController(DatasetImporter adapter,DatasetStore store){this.adapter=adapter;this.store=store;}
  record Pending(byte[] bytes,String filename,String token){}
  record UploadResult(boolean valid,List<String> errors,String previewUrl){}
- @GetMapping("/") String home(Model m){m.addAttribute("datasets",store.all());return "home";}
+ @GetMapping("/") String home(Model m){m.addAttribute("datasets",store.all());m.addAttribute("archivedDatasets",store.archived());return "home";}
 
  private DatasetDocument prepare(MultipartFile file,HttpSession session) throws Exception {
   session.removeAttribute("pending");
   byte[] bytes=file.getBytes(); DatasetDocument d=adapter.parse(bytes);
-  if(d.valid()&&store.exists(d,bytes))d.errors().add("Dataset name/version or exact source file already imported. Choose a new version only for changed data.");
+  if(d.valid())store.existing(d,bytes).ifPresent(existing -> d.errors().add(existing.get("archived_at") != null
+   ? "This dataset was already imported and removed from the active list. Restore it under Removed datasets to reuse its saved records."
+   : "Dataset name/version or exact source file already imported. Choose a new version only for changed data."));
   if(d.valid())session.setAttribute("pending",new Pending(bytes,Objects.toString(file.getOriginalFilename(),"upload.json"),UUID.randomUUID().toString()));
   return d;
  }
@@ -61,6 +63,23 @@ public class WebController {
   if(!d.valid()){session.removeAttribute("pending");flash.addFlashAttribute("message","Import rejected: dataset structure validation failed. Upload and preview again.");return "redirect:/";}
   try {UUID id=store.save(d,p.bytes(),p.filename());session.removeAttribute("pending");return "redirect:/evaluation/"+id+"/coverage";}
   catch(DataIntegrityViolationException e){session.removeAttribute("pending");flash.addFlashAttribute("message","Import rejected: dataset/version, source file, or record already exists. Nothing was imported.");return "redirect:/";}
+ }
+ @PostMapping("/preview/clear")
+ @ResponseStatus(HttpStatus.NO_CONTENT)
+ @ResponseBody
+ void clearPreview(HttpSession session){session.removeAttribute("pending");}
+
+ @PostMapping("/datasets/{id}/archive")
+ String archive(@PathVariable UUID id,RedirectAttributes flash){
+  if(!store.archive(id))throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND);
+  flash.addFlashAttribute("notice","Dataset removed from the active list. Its stored records are retained.");
+  return "redirect:/";
+ }
+ @PostMapping("/datasets/{id}/restore")
+ String restore(@PathVariable UUID id,RedirectAttributes flash){
+  if(!store.restore(id))throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND);
+  flash.addFlashAttribute("notice","Dataset restored. Existing records are ready to reuse.");
+  return "redirect:/";
  }
  @GetMapping("/datasets/{id}") String dataset(@PathVariable UUID id) {
   try {store.dataset(id);}catch(EmptyResultDataAccessException e){throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);}

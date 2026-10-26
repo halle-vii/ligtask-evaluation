@@ -62,3 +62,10 @@ details.coverage-disclosure{margin:0;padding:12px 0;border:0;border-bottom:1px s
 .coverage-toggle[aria-expanded=true]::before{transform:rotate(45deg)}.coverage-toggle[aria-expanded=true]{color:#1c45d5}.coverage-toggle:hover{background:transparent;color:#1c45d5}
 .coverage-support [hidden]{display:none}.coverage-panel,.coverage-support>.missing-variants{padding:14px 0;border-bottom:1px solid #e1e5ed}.coverage-panel .table-wrap{margin:0}
 @media(max-width:600px){.coverage-toolbar{gap:8px 18px}}
+
+.selected-upload{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 16px;margin:16px 0}.selected-upload strong{overflow-wrap:anywhere}
+.remove-file{padding:4px 9px;border-radius:6px;font-size:13px;background:transparent;color:#687181;text-decoration:underline}.remove-file:hover{background:#eef2ff;color:#1c45d5}.remove-file[hidden]{display:none}
+.remove-dataset-form,.restore-dataset-form{margin:0}.remove-dataset-button{display:inline-flex;align-items:center;gap:6px;background:transparent;color:#9a3434;border:1px solid #ead5d5;border-radius:7px;padding:7px 10px;font-size:12px;white-space:nowrap}.remove-dataset-button:hover{background:#fff0f0;color:#842525}
+.restore-dataset-button{padding:7px 12px;border-radius:7px;background:#e8edff;color:#15358f;font-size:12px}.restore-dataset-button:hover{background:#d9e2ff;color:#0f246f}
+.removed-datasets{margin-top:20px}.removed-datasets>summary{font-size:13px;color:#687181}.removed-datasets .table-wrap{margin-top:14px}.dataset-feedback{font-size:13px;color:#31614d;margin:20px 0}
+.removal-dataset-name{font-weight:600;color:#0f246f;overflow-wrap:anywhere}.removal-actions{gap:12px}.cancel-removal{background:#eef1f6;color:#536074}.cancel-removal:hover{background:#e2e7f0;color:#202735}.confirm-removal{background:#aa3838}.confirm-removal:hover{background:#8f2d2d}

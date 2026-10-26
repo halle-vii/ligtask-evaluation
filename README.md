@@ -33,6 +33,8 @@ docker compose up -d --wait db
 
 Open **http://127.0.0.1:8080**. Browse or drop the prepared dataset from Finder or your file manager, choose **Submit**, inspect errors/warnings/coverage/records, then **Confirm import**. Invalid uploads show field errors in a modal on the upload page, retaining the selected file; close it with Got it, ×, or Escape. Valid uploads open the preview, with Confirm import beside its heading and a back-to-top button when scrolled. Dataset coverage uses a compact row for completeness status, exact counts and dataset details. Preview alone writes no dataset. The dataset list and record pages read from PostgreSQL. Imports are immutable versions; changes require a new version, never an overwrite. Reuploading the same file or name/version is rejected. Preview expires after 30 minutes of session inactivity and is lost when the application restarts.
 
+Use **Remove file** to clear the selected local file and invalidate its pending preview. **Remove** on an imported dataset opens a confirmation dialog and archives it from the active list, retaining its stored prompts and identities. Open **Removed datasets** and choose **Restore** to reuse those records. Reuploading a removed dataset prompts restoration instead of creating a second copy. This removal path is designed to retain future linked API results; API result persistence itself is still assigned to the integration work.
+
 With an existing PostgreSQL installation, create an empty database owned by a dedicated role and configure:
 
 ```sh

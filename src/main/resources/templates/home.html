@@ -6,5 +6,30 @@
 <ul id="upload-error-list"><li th:each="error:${uploadErrors}" th:text="${error}"></li><li th:if="${message}" th:text="${message}"></li></ul>
 <div class="modal-actions"><button type="button" id="acknowledge-upload-error">Got it</button></div>
 </dialog>
-<form class="upload" method="post" th:action="@{/preview}" enctype="multipart/form-data"><div id="drop" class="drop"><label for="file">Drag your JSON file here or <span class="button">Browse</span></label><input id="file" name="file" type="file" accept=".json,application/json" required><p class="muted">LIGTask dataset JSON only · UTF-8 JSON · Up to 10 MB · Nothing is imported until you confirm</p></div><p>Selected file: <strong id="filename" aria-live="polite">None</strong></p><button type="submit">Submit</button></form>
-<section><h2>Imported datasets</h2><p class="muted" th:if="${#lists.isEmpty(datasets)}">No datasets imported.</p><div class="table-wrap" th:unless="${#lists.isEmpty(datasets)}"><table><thead><tr><th>Dataset / version</th><th>Data origin</th><th>Records</th><th>Imported</th></tr></thead><tbody><tr th:each="d:${datasets}" th:attr="data-version=${d.version}"><td><a th:href="@{/evaluation/{id}/coverage(id=${d.id})}" th:text="${d.name}"></a><small th:unless="${#strings.startsWith(d.version, 'sha256-')}" th:text="${d.version}"></small></td><td th:text="${d.synthetic ? 'SYNTHETIC' : 'Source data (unverified)'}"></td><td th:text="${d.record_count}"></td><td th:text="${d.imported_at}"></td></tr></tbody></table></div></section><script src="/upload.js" defer></script></main></body></html>
+<form class="upload" method="post" th:action="@{/preview}" enctype="multipart/form-data"><div id="drop" class="drop"><label for="file">Drag your JSON file here or <span class="button">Browse</span></label><input id="file" name="file" type="file" accept=".json,application/json" required><p class="muted">LIGTask dataset JSON only · UTF-8 JSON · Up to 10 MB · Nothing is imported until you confirm</p></div><div class="selected-upload"><span>Selected file: <strong id="filename" aria-live="polite">None</strong></span><button id="remove-file" class="remove-file" type="button" hidden>Remove file</button></div><button type="submit">Submit</button></form>
+<p class="dataset-feedback" role="status" th:if="${notice}" th:text="${notice}"></p>
+<section>
+  <h2>Imported datasets</h2>
+  <p class="muted" th:if="${#lists.isEmpty(datasets)}">No datasets imported.</p>
+  <div class="table-wrap" th:unless="${#lists.isEmpty(datasets)}"><table>
+    <thead><tr><th>Dataset / version</th><th>Data origin</th><th>Records</th><th>Imported</th><th>Actions</th></tr></thead>
+    <tbody><tr th:each="d:${datasets}" th:attr="data-version=${d.version}">
+      <td><a th:href="@{/evaluation/{id}/coverage(id=${d.id})}" th:text="${d.name}"></a><small th:text="${d.source_filename}"></small><small th:unless="${#strings.startsWith(d.version, 'sha256-')}" th:text="${d.version}"></small></td>
+      <td th:text="${d.synthetic ? 'SYNTHETIC' : 'Source data (unverified)'}"></td><td th:text="${d.record_count}"></td><td th:text="${d.imported_at}"></td>
+      <td><form class="remove-dataset-form" method="post" th:action="@{/datasets/{id}/archive(id=${d.id})}" th:attr="data-dataset-name=${d.name},data-source-file=${d.source_filename},data-record-count=${d.record_count}"><button type="submit" class="remove-dataset-button" th:aria-label="${'Remove ' + d.name}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>Remove</button></form></td>
+    </tr></tbody>
+  </table></div>
+  <details class="removed-datasets" th:unless="${#lists.isEmpty(archivedDatasets)}">
+    <summary>Removed datasets (<span th:text="${#lists.size(archivedDatasets)}"></span>)</summary>
+    <div class="table-wrap"><table><thead><tr><th>Dataset</th><th>Records</th><th>Removed</th><th>Actions</th></tr></thead><tbody>
+      <tr th:each="d:${archivedDatasets}"><td><span th:text="${d.name}"></span><small th:text="${d.source_filename}"></small></td><td th:text="${d.record_count}"></td><td th:text="${d.archived_at}"></td><td><form class="restore-dataset-form" method="post" th:action="@{/datasets/{id}/restore(id=${d.id})}"><button type="submit" class="restore-dataset-button" th:aria-label="${'Restore ' + d.name}">Restore</button></form></td></tr>
+    </tbody></table></div>
+  </details>
+</section>
+<dialog id="remove-dataset-dialog" class="upload-error-modal" aria-labelledby="remove-dataset-title" aria-describedby="remove-dataset-description">
+  <div class="modal-heading"><h2 id="remove-dataset-title">Remove dataset?</h2><button type="button" class="modal-close" data-cancel-remove aria-label="Cancel removal">×</button></div>
+  <p id="remove-dataset-name" class="removal-dataset-name"></p><p id="remove-dataset-source" class="muted"></p>
+  <p id="remove-dataset-description">This removes the dataset from the active list. Its prompts and any linked API results are retained. You can restore it later under Removed datasets.</p>
+  <div class="modal-actions removal-actions"><button type="button" class="cancel-removal" data-cancel-remove>Cancel</button><button id="confirm-remove-dataset" type="button" class="confirm-removal">Remove dataset</button></div>
+</dialog>
+<script src="/upload.js" defer></script></main></body></html>

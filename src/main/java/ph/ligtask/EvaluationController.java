@@ -34,7 +34,9 @@ public class EvaluationController {
         try { model.addAttribute("dataset", store.dataset(id)); }
         catch (EmptyResultDataAccessException e) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
         model.addAttribute("datasetId", id);
-        var datasets = store.all();
+        var datasets = new ArrayList<>(store.all());
+        // Retained links can still open an archived dataset without making it active again.
+        if (datasets.stream().noneMatch(dataset -> dataset.get("id").equals(id))) datasets.add(0, store.dataset(id));
         model.addAttribute("datasets", datasets);
         var selected = modelKey == null ? null : EvaluationView.model(modelKey);
         model.addAttribute("selectedModel", selected);

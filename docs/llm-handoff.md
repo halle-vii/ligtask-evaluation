@@ -27,3 +27,11 @@ Before enabling Start run:
 Keep the named research models aligned with the manuscript. Confirm endpoint availability and hosting with the research team; do not substitute models automatically. No provider availability or pricing claims are made by the current static model list.
 
 Human annotation remains external. The source export's `gold` is unconfirmed contextual metadata and must not be sent as an answer or treated as independent human ground truth. Model response coding and final statistical procedures still need their agreed protocol before metrics are enabled.
+
+## Dataset removal and retained results
+
+Dataset removal is now archival. `V2__dataset_archiving.sql` adds nullable `dataset_version.archived_at`. The Remove action only updates that timestamp; it never deletes datasets, prompts or linked records. Active dataset lists exclude archived entries. The upload page's Removed datasets section restores the same dataset UUID and original prompt UUIDs; reuploading an archived file is blocked with a restore instruction, preventing a duplicate import identity.
+
+Existing direct dataset/results URLs can still read retained data; the header identifies the dataset as Removed. Archival is a visibility/lifecycle state, not an access-control mechanism. Future saved-run views must include archived datasets when reading existing results, and new execution must require an active dataset. Do not treat archiving as a signal to delete responses or reset the one-response-per-prompt registry.
+
+When implementing API persistence, reference `dataset_version.id` and `prompt_instance.id` from durable run/response/attempt records, preserve these identities, and avoid cascading deletions or cleanup jobs that discard paid responses. The application currently has no real API-result tables; an integration test uses a test-only linked-response record to verify archival and restoration leave its foreign keys and content intact. Permanent erasure is not offered by the upload UI.

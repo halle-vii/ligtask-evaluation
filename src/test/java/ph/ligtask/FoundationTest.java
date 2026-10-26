@@ -330,4 +330,63 @@ class FoundationTest {
    .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("No missing variants"))));
  }
 
+ @Test void clearingSelectedFileInvalidatesPendingPreviewAndRequiresCsrf() throws Exception {
+  var session=new MockHttpSession();
+  byte[] bytes=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file",bytes)).session(session).with(csrf()));
+  var pending=(WebController.Pending)session.getAttribute("pending");
+  assertThat(pending).isNotNull();
+  mvc.perform(post("/preview/clear").session(session)).andExpect(status().isForbidden());
+  assertThat(session.getAttribute("pending")).isNotNull();
+  mvc.perform(post("/preview/clear").session(session).with(csrf())).andExpect(status().isNoContent());
+  assertThat(session.getAttribute("pending")).isNull();
+  mvc.perform(post("/import").param("token",pending.token()).session(session).with(csrf())).andExpect(redirectedUrl("/"));
+  assertThat(store.all()).isEmpty();
+ }
+
+ @Test void removingDatasetArchivesAndRestoringReusesItsOriginalIdentities() throws Exception {
+  UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
+  var original=store.records(id);Object imported=store.dataset(id).get("imported_at");
+  mvc.perform(post("/datasets/"+id+"/archive")).andExpect(status().isForbidden());
+  assertThat(store.all()).hasSize(1);
+  mvc.perform(post("/datasets/"+id+"/archive").with(csrf())).andExpect(redirectedUrl("/"));
+  assertThat(store.all()).isEmpty();assertThat(store.archived()).hasSize(1);
+  assertThat(store.records(id)).isEqualTo(original);assertThat(store.dataset(id).get("archived_at")).isNotNull();
+  mvc.perform(get("/")).andExpect(content().string(org.hamcrest.Matchers.containsString("Removed datasets")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Restore")));
+  mvc.perform(get("/evaluation")).andExpect(view().name("evaluation-empty"));
+  mvc.perform(get("/evaluation/"+id+"/coverage")).andExpect(status().isOk());
+  mvc.perform(post("/datasets/"+id+"/restore").with(csrf())).andExpect(redirectedUrl("/"));
+  assertThat(store.archived()).isEmpty();assertThat(store.all()).hasSize(1);
+  assertThat(store.dataset(id).get("imported_at")).isEqualTo(imported);
+  assertThat(store.records(id)).isEqualTo(original);
+  mvc.perform(post("/datasets/"+UUID.randomUUID()+"/archive").with(csrf())).andExpect(status().isNotFound());
+  mvc.perform(post("/datasets/"+UUID.randomUUID()+"/restore").with(csrf())).andExpect(status().isNotFound());
+ }
+
+ @Test void archivedUploadIsBlockedUntilRestoreWithoutCreatingDuplicatePrompts() throws Exception {
+  byte[] bytes=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  UUID id=store.save(importer.parse(bytes),bytes,"original.json");store.archive(id);
+  var session=new MockHttpSession();
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","same.json","application/json",bytes))
+    .session(session).with(csrf()).accept(org.springframework.http.MediaType.APPLICATION_JSON).header("X-Requested-With","fetch"))
+   .andExpect(status().isUnprocessableEntity()).andExpect(content().string(org.hamcrest.Matchers.containsString("Restore it under Removed datasets")));
+  assertThat(session.getAttribute("pending")).isNull();
+  assertThat(store.records(id)).hasSize(12);
+  assertThat(db.queryForObject("select count(*) from dataset_version",Integer.class)).isEqualTo(1);
+ }
+
+ @Test @org.springframework.transaction.annotation.Transactional
+ void archivingPreservesAStoredResponseLinkedByForeignKeys() throws Exception {
+  UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
+  UUID prompt=(UUID)store.records(id).get(0).get("id");
+  db.execute("create table archive_result_probe(dataset_id uuid references dataset_version(id), prompt_id uuid references prompt_instance(id), raw_response text not null)");
+  db.update("insert into archive_result_probe values(?,?,?)",id,prompt,"Already-paid response");
+  assertThat(store.archive(id)).isTrue();
+  assertThat(db.queryForObject("select raw_response from archive_result_probe where dataset_id=? and prompt_id=?",String.class,id,prompt)).isEqualTo("Already-paid response");
+  assertThat(store.records(id)).hasSize(24);
+  assertThat(store.restore(id)).isTrue();
+  assertThat(db.queryForObject("select count(*) from archive_result_probe",Integer.class)).isEqualTo(1);
+ }
+
 }
