@@ -86,7 +86,7 @@ class FoundationTest {
    .andExpect(content().string(org.hamcrest.Matchers.containsString("LIGTask Benchmark")))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("Claude-3.5-sonnet")))
    .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("98.0%"))));
-  var result=mvc.perform(get("/evaluation/"+id+"/models/claude-3-5-sonnet")
+  var result=mvc.perform(get("/evaluation/"+id+"/models/claude-sonnet-4-5")
    .param("language","FIL").param("context","SAFE").param("task","NLU"))
    .andExpect(status().isOk()).andExpect(view().name("evaluation-results"))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("Not evaluated"))).andReturn();

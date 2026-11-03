@@ -26,8 +26,25 @@
             <div class="run-model-list">
               <label class="run-model-option" th:each="model:${models}">
                 <input type="checkbox" name="run-model" th:value="${model.key}">
-                <span th:text="${model.name}"></span><span class="connection-status">Not configured</span>
-              </label>
+
+                <span th:text="${model.name}"></span>
+
+                <span class="connection-status"
+                      th:classappend="${
+                          connectionStatuses[model.key].status.name() == 'CONNECTED' ? ' is-connected' :
+                          connectionStatuses[model.key].status.name() == 'BILLING_RESTRICTED' ? ' is-restricted' :
+                          connectionStatuses[model.key].status.name() == 'UNAVAILABLE' ? ' is-unavailable' :
+                          ' is-not-tested'
+                      }"
+                      th:text="${
+                          connectionStatuses[model.key].status.name() == 'CONNECTED' ? 'Connected' :
+                          connectionStatuses[model.key].status.name() == 'BILLING_RESTRICTED' ? 'Billing restricted' :
+                          connectionStatuses[model.key].status.name() == 'UNAVAILABLE' ? 'Unavailable' :
+                          'Not tested'
+                      }"
+                      th:title="${connectionStatuses[model.key].message}">
+                </span>
+            </label>
             </div>
           </section>
           <section class="run-card">

@@ -12,7 +12,7 @@ public final class EvaluationView {
         public String logo() {
             String icon = switch (key) {
                 case "gpt-4o", "gpt-4o-mini" -> "openai";
-                case "claude-3-5-sonnet" -> "claude-color";
+                case "claude-sonnet-4-5" -> "claude-color";
                 case "llama-3-70b-instruct" -> "meta-color";
                 case "qwen2-72b" -> "qwen-color";
                 case "mixtral-8x7b" -> "mistral-color";
@@ -25,7 +25,7 @@ public final class EvaluationView {
     // Design reference labels, not configured providers or claims of model availability.
     public static final List<ModelChoice> MODELS = List.of(
         new ModelChoice("gpt-4o", "GPT-4o"),
-        new ModelChoice("claude-3-5-sonnet", "Claude-3.5-sonnet"),
+        new ModelChoice("claude-sonnet-4-5", "Claude-Sonnet-4.5"),
         new ModelChoice("llama-3-70b-instruct", "Llama-3-70B-Instruct"),
         new ModelChoice("qwen2-72b", "Qwen2-72B"),
         new ModelChoice("mixtral-8x7b", "Mixtral 8x7B"),
