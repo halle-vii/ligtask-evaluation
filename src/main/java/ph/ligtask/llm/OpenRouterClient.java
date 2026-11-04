@@ -33,6 +33,10 @@ public class OpenRouterClient implements LlmProvider {
         return ModelConfiguration.Provider.OPENROUTER;
     }
 
+    @Override public String redactError(String text) { return configured() ? text.replace(apiKey, "[REDACTED]") : text; }
+
+    @Override public boolean configured() { return apiKey != null && !apiKey.isBlank(); }
+
     @Override
     public LlmResponse generate(LlmRequest request) {
 
@@ -52,7 +56,7 @@ public class OpenRouterClient implements LlmProvider {
             );
         }
 
-        Map<String, Object> requestBody = Map.of(
+        Map<String, Object> requestBody = new java.util.LinkedHashMap<>(Map.of(
             "model", request.modelId(),
             "messages", List.of(
                 Map.of(
@@ -62,7 +66,12 @@ public class OpenRouterClient implements LlmProvider {
             ),
             "temperature", request.temperature(),
             "max_tokens", request.maxTokens()
-        );
+        ));
+        if (request.outputSchema() != null) {
+            requestBody.put("response_format", LigtaskOutputContract.responseFormat(request.outputSchema()));
+            // Reject unsupported routes instead of dropping schema enforcement.
+            requestBody.put("provider", Map.of("require_parameters", true));
+        }
 
         JsonNode result = restClient.post()
             .uri("/chat/completions")

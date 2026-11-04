@@ -15,7 +15,7 @@ public final class EvaluationView {
                 case "claude-sonnet-4-5" -> "claude-color";
                 case "llama-3-70b-instruct" -> "meta-color";
                 case "qwen2-72b" -> "qwen-color";
-                case "mixtral-8x7b" -> "mistral-color";
+                case "mistral-small-2603" -> "mistral-color";
                 case "dolphin-2-9-llama3-70b" -> "dolphin";
                 default -> throw new IllegalStateException("Missing model logo: " + key);
             };
@@ -28,7 +28,7 @@ public final class EvaluationView {
         new ModelChoice("claude-sonnet-4-5", "Claude-Sonnet-4.5"),
         new ModelChoice("llama-3-70b-instruct", "Llama-3-70B-Instruct"),
         new ModelChoice("qwen2-72b", "Qwen2-72B"),
-        new ModelChoice("mixtral-8x7b", "Mixtral 8x7B"),
+        new ModelChoice("mistral-small-2603", "Mistral Small 4"),
         new ModelChoice("dolphin-2-9-llama3-70b", "Dolphin-2.9-Llama3-70B"),
         new ModelChoice("gpt-4o-mini", "GPT-4o-mini"));
     public static final List<String> METRICS = List.of("Accuracy", "Precision", "Recall", "F1 score", "PCC", "BCE");

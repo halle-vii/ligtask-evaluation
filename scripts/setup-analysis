@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+analysis_python=${LIGTASK_ANALYSIS_SETUP_PYTHON:-python3.13}
+"$analysis_python" -c 'import sys; assert (3,11) <= sys.version_info[:2] <= (3,13), "Use Python 3.11–3.13 for the pinned analysis libraries."'
+"$analysis_python" -m venv .local/analysis-venv
+.local/analysis-venv/bin/python -m pip install -r analysis/requirements.txt

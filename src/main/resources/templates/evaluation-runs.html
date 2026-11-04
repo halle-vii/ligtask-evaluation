@@ -5,8 +5,9 @@
 <header th:replace="~{evaluation-parts :: top}"></header>
 <div class="eval-shell">
   <nav th:replace="~{evaluation-parts :: navigation('runs')}"></nav>
-  <main class="eval-main runs-main" th:attr="data-prompt-count=${promptCount}">
-    <div class="runs-heading"><div><h1>Runs</h1><p class="muted">Set up a zero-shot evaluation and review saved responses.</p></div><span class="run-status">Execution not connected</span></div>
+  <main class="eval-main runs-main" th:attr="data-prompt-count=${promptCount},data-run-api=${runApi},data-csrf-header=${_csrf.headerName},data-csrf-token=${_csrf.token}">
+    <div class="runs-heading"><div><h1>Runs</h1><p class="muted">Set up a zero-shot evaluation and review saved responses.</p></div><span class="run-status" id="run-live-status">Ready to set up</span></div>
+    <p id="run-action-message" role="status" aria-live="polite"></p>
     <div class="run-tabs" role="tablist" aria-label="Run workspace">
       <button id="setup-tab" type="button" role="tab" aria-selected="true" aria-controls="setup-panel" data-run-tab="setup">Run setup</button>
       <button id="progress-tab" type="button" role="tab" aria-selected="false" aria-controls="progress-panel" tabindex="-1" data-run-tab="progress">Progress</button>
@@ -23,33 +24,83 @@
           </section>
           <section class="run-card">
             <div class="run-card-heading"><h2>Select models</h2><button id="select-all-models" type="button" class="run-text-button">Select all</button></div>
+            <details class="run-key-help" th:inline="none">
+              <summary>How to configure API keys?</summary>
+              <div class="run-key-help-content">
+                <p>Each person running the system must configure their own key, or an authorized shared project key. The app reads keys when it starts.</p>
+                <h3>macOS · zsh terminal</h3>
+                <ol>
+                  <li>In the terminal running the system, press <strong>Control+C</strong> to stop it. Keep the database running.</li>
+                  <li>Paste these commands, then paste your OpenRouter key at the prompt and press Enter. Your key stays hidden.
+                    <pre><code>read -s "OPENROUTER_API_KEY?Paste your OpenRouter key, then press Enter: "
+export OPENROUTER_API_KEY
+echo</code></pre>
+                  </li>
+                  <li>Confirm the key is set without displaying it:
+                    <pre><code>[[ -n "$OPENROUTER_API_KEY" ]] &amp;&amp; echo "Key configured" || echo "Key not set"</code></pre>
+                  </li>
+                  <li>From the project folder, start the system again <strong>in that same terminal</strong>:
+                    <pre><code>/Library/Java/JavaVirtualMachines/jdk-22.jdk/Contents/Home/bin/java -jar target/ligtask-evaluation-0.1.0.jar</code></pre>
+                    <p>This command uses the JDK 22 installation on this Mac. On another computer, use its installed JDK 21–25.</p>
+                  </li>
+                  <li>Wait for <strong>Started Application</strong>, refresh this page, and check that your models show <strong>API key configured</strong>.</li>
+                </ol>
+                <details>
+                  <summary>Windows · PowerShell</summary>
+                  <p>Stop the system with Control+C, then set the key privately:</p>
+                  <pre><code>$env:OPENROUTER_API_KEY = [System.Net.NetworkCredential]::new('', (Read-Host 'OpenRouter key' -AsSecureString)).Password</code></pre>
+                  <p>From the project folder, restart in the same PowerShell window with JAVA_HOME set to your JDK:</p>
+                  <pre><code>&amp; "$env:JAVA_HOME\bin\java.exe" -jar target/ligtask-evaluation-0.1.0.jar</code></pre>
+                  <p>Wait for startup to finish, then refresh this page.</p>
+                </details>
+                <details>
+                  <summary>Hugging Face models · optional</summary>
+                  <p>For Llama, Qwen and Dolphin, configure HUGGINGFACE_API_KEY before restarting. In macOS zsh:</p>
+                  <pre><code>read -s "HUGGINGFACE_API_KEY?Paste your Hugging Face key, then press Enter: "
+export HUGGINGFACE_API_KEY
+echo</code></pre>
+                  <p>In PowerShell, use the Windows command above with HUGGINGFACE_API_KEY instead of OPENROUTER_API_KEY.</p>
+                </details>
+                <h3>Delete API keys when you are done</h3>
+                <p><strong>Important: delete your API keys when you finish your runs to prevent unauthorized use and unexpected charges.</strong> Remove them from your terminal and delete or revoke keys you no longer need in your provider account.</p>
+                <ol>
+                  <li>Wait for your runs to finish, then press <strong>Control+C</strong> in the terminal running the system to stop it. Removing a terminal variable does not remove the key from an app that is already running.</li>
+                  <li>In that same terminal, remove both keys:
+                    <p><strong>macOS · zsh</strong></p>
+                    <pre><code>unset OPENROUTER_API_KEY HUGGINGFACE_API_KEY</code></pre>
+                    <p><strong>Windows · PowerShell</strong></p>
+                    <pre><code>Remove-Item Env:OPENROUTER_API_KEY, Env:HUGGINGFACE_API_KEY -ErrorAction SilentlyContinue</code></pre>
+                  </li>
+                  <li>Sign in to OpenRouter or Hugging Face, open your API key or access token settings, and delete or revoke the key you used when it is no longer needed. <strong>Removing a key from your terminal does not revoke it with the provider.</strong> For a shared project key, coordinate with the owner before revoking it.</li>
+                  <li>If you saved a key in a shell profile, environment settings, or a configuration file, remove it there too. Restart the system without the keys and refresh this page to check that the models show <strong>API key missing</strong>.</li>
+                </ol>
+                <p><strong>Keep the key private.</strong> Do not put it in source files, Git, screenshots, or chat. These commands keep it out of terminal history. A new terminal session needs the key configured again.</p>
+                <p>A configured key does not guarantee credits, provider access, or model availability. For the first test, select one model, keep <strong>One prompt (test)</strong>, and acknowledge provider charges before starting.</p>
+              </div>
+            </details>
             <div class="run-model-list">
               <label class="run-model-option" th:each="model:${models}">
-                <input type="checkbox" name="run-model" th:value="${model.key}">
+                <input type="checkbox" name="run-model" th:value="${model.key}" th:disabled="${!modelAvailability[model.key]}">
 
                 <span th:text="${model.name}"></span>
 
-                <span class="connection-status"
-                      th:classappend="${
-                          connectionStatuses[model.key].status.name() == 'CONNECTED' ? ' is-connected' :
-                          connectionStatuses[model.key].status.name() == 'BILLING_RESTRICTED' ? ' is-restricted' :
-                          connectionStatuses[model.key].status.name() == 'UNAVAILABLE' ? ' is-unavailable' :
-                          ' is-not-tested'
-                      }"
-                      th:text="${
-                          connectionStatuses[model.key].status.name() == 'CONNECTED' ? 'Connected' :
-                          connectionStatuses[model.key].status.name() == 'BILLING_RESTRICTED' ? 'Billing restricted' :
-                          connectionStatuses[model.key].status.name() == 'UNAVAILABLE' ? 'Unavailable' :
-                          'Not tested'
-                      }"
-                      th:title="${connectionStatuses[model.key].message}">
-                </span>
+                <span class="connection-status" th:text="${modelAvailability[model.key] ? 'API key configured' : 'API key missing'}"></span>
             </label>
             </div>
           </section>
           <section class="run-card">
+            <h2>Prompts and output</h2>
+            <label class="run-field-label" for="run-limit">Prompts per model</label>
+            <select id="run-limit"><option value="1">One prompt (test)</option><option th:value="${promptCount}">All prompts</option></select>
+            <label class="run-field-label" for="run-instance">Specific prompt ID (optional, for a one-prompt test)</label>
+            <input id="run-instance" type="text" maxlength="300" placeholder="Leave blank to use the first prompt">
+            <label class="run-field-label" for="run-max-tokens">Maximum output tokens per request</label>
+            <input id="run-max-tokens" type="number" value="512" min="64" max="4096">
+            <p class="run-caption">Requests run sequentially. Previous attempts with the same input, model and settings are reused, including invalid or uncertain responses. No automatic retries.</p>
+          </section>
+          <section class="run-card">
             <h2>Stored input preview</h2>
-            <p class="muted run-caption">Review a sample of the stored instruction, query, context and expected response format. Source labels are excluded.</p>
+            <p class="muted run-caption">Review a sample of the exact evaluation input and its expected response format. Source labels are excluded.</p>
             <label class="run-field-label" for="run-input-choice">Sample prompt</label>
             <select id="run-input-choice"><option th:each="input,position:${inputPreviews}" th:value="${position.index}" th:text="${input.identifier}"></option></select>
             <pre class="run-input-preview" th:each="input,position:${inputPreviews}" th:attr="data-run-input=${position.index}" th:hidden="${!position.first}" th:text="${input.content}"></pre>
@@ -60,21 +111,54 @@
           <dl><dt>Prompting</dt><dd>Zero-shot</dd><dt>Selected models</dt><dd data-selected-model-count>0</dd><dt>Responses per prompt / model</dt><dd>1</dd><dt>Automatic retries</dt><dd>Off</dd></dl>
           <div class="request-estimate"><span>Planned requests</span><strong data-planned-requests aria-live="polite">0</strong></div>
           <p class="run-caption">One response per prompt per selected model. Saved responses will be reused.</p>
+          <label class="run-cost-ack"><input id="run-cost-ack" type="checkbox"> I understand that starting this run may incur provider charges.</label>
           <button type="button" id="start-run" disabled aria-describedby="run-availability">Start run</button>
-          <p id="run-availability" class="muted run-caption">Model connections are required before execution.</p>
+          <p id="run-availability" class="muted run-caption">Select configured models and acknowledge provider charges. API key availability does not guarantee model access.</p>
         </aside>
       </div>
     </section>
 
     <section id="progress-panel" class="run-panel" role="tabpanel" aria-labelledby="progress-tab" hidden>
-      <div class="run-card run-empty"><span class="run-status">Not started</span><h2>No active run</h2><p>Progress will appear here when a connected model starts processing the dataset.</p><button type="button" class="run-secondary-button" data-open-run-tab="setup">Back to setup</button></div>
-      <div class="run-progress-summary"><article class="run-card"><span>Planned requests</span><strong data-planned-requests>0</strong></article><article class="run-card"><span>Completed</span><strong>0</strong></article><article class="run-card"><span>Failed</span><strong>0</strong></article><article class="run-card"><span>Uncertain</span><strong>0</strong></article></div>
-      <div class="run-card"><h2>Model progress</h2><div class="run-progress-row" th:each="model:${models}"><span th:text="${model.name}"></span><progress value="0" max="1" th:aria-label="${model.name + ' progress'}"></progress><span class="muted">Not started</span></div></div>
+      <div class="run-card">
+        <h2 id="active-run-title">No active run</h2>
+        <p id="active-run-detail" aria-live="polite">Start a run or open one from Saved runs.</p>
+        <progress id="run-total-progress" value="0" max="1" aria-label="Overall progress"></progress>
+        <p id="run-counts"></p>
+        <button type="button" id="cancel-run" class="run-secondary-button" hidden>Stop after current request</button>
+        <button type="button" id="view-run-responses" class="run-secondary-button" hidden>Review responses</button>
+        <a id="run-export" hidden>Download run JSON</a>
+      </div>
+      <div class="run-card"><h2>Model progress</h2><div id="live-model-progress"></div></div>
+      <div class="run-card" id="run-response-panel" hidden><h2>Saved responses</h2><div id="run-response-rows"></div><button type="button" id="responses-prev">Previous 50</button> <button type="button" id="responses-next">Next 50</button><p id="responses-page"></p></div>
     </section>
 
     <section id="history-panel" class="run-panel" role="tabpanel" aria-labelledby="history-tab" hidden>
-      <div class="run-card run-empty"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><h2>No saved runs</h2><p>Completed evaluations and their saved responses will appear here.</p><button type="button" class="run-secondary-button" data-open-run-tab="setup">Set up evaluation</button></div>
+      <div class="run-card">
+        <div class="run-card-heading">
+          <h2>Saved runs</h2>
+          <button type="button" id="refresh-runs" class="run-secondary-button run-icon-button" aria-label="Refresh saved runs" title="Refresh saved runs">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 17.9 17"/></svg>
+          </button>
+        </div>
+        <div id="saved-run-list"><p>No saved runs</p></div>
+      </div>
     </section>
+    <dialog id="retry-run-dialog" class="metric-export-dialog" aria-labelledby="retry-run-title">
+      <h2 id="retry-run-title">Retry failed and unfinished requests?</h2>
+      <p id="retry-run-summary"></p>
+      <p>Retries use the original input and model settings. Each request may incur new provider charges. Successful responses are reused without another model call.</p>
+      <label class="run-cost-ack"><input id="retry-cost-ack" type="checkbox"> I understand that retrying may incur provider charges.</label>
+      <label class="run-cost-ack" id="retry-uncertain-label" hidden><input id="retry-uncertain-ack" type="checkbox"><span id="retry-uncertain-text"></span></label>
+      <p id="retry-run-error" role="alert"></p>
+      <div class="metric-export-actions"><button type="button" id="cancel-retry-run" class="run-secondary-button">Cancel</button><button type="button" id="confirm-retry-run" disabled>Start retry run</button></div>
+    </dialog>
+    <dialog id="delete-run-dialog" class="metric-export-dialog" aria-labelledby="delete-run-title">
+      <h2 id="delete-run-title">Delete saved run?</h2>
+      <p>Run <strong id="delete-run-id"></strong> and its unshared responses will be permanently deleted. Responses referenced by another saved run are retained. Dataset prompts are retained.</p>
+      <p>Deleting unshared responses also clears their reuse history. Evaluating those requests again may incur provider charges.</p>
+      <p id="delete-run-error" role="alert"></p>
+      <div class="metric-export-actions"><button type="button" id="cancel-delete-run" class="run-secondary-button">Cancel</button><button type="button" id="confirm-delete-run" class="run-delete-button">Delete run</button></div>
+    </dialog>
     <script src="/runs.js" defer></script>
   </main>
 </div>

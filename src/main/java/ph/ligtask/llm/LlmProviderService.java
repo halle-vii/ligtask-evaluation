@@ -39,6 +39,17 @@ public class LlmProviderService {
         int maxTokens
     ) {
 
+        return generate(modelKey, prompt, temperature, maxTokens, null);
+    }
+
+    /** Evaluation requests carry the same contract used by prompts and validation. */
+    public LlmResponse generate(
+        String modelKey,
+        String prompt,
+        double temperature,
+        int maxTokens,
+        com.fasterxml.jackson.databind.JsonNode outputSchema
+    ) {
         ModelConfiguration.Model model = ModelConfiguration.MODELS
             .stream()
             .filter(candidate -> candidate.key().equals(modelKey))
@@ -59,10 +70,23 @@ public class LlmProviderService {
             model.modelId(),
             prompt,
             temperature,
-            maxTokens
+            maxTokens,
+            outputSchema
         );
 
         return provider.generate(request);
+    }
+
+    public String redactError(String text) {
+        for (var provider : providers.values()) text = provider.redactError(text);
+        return text;
+    }
+
+    public boolean configured(String modelKey) {
+        var model = ModelConfiguration.MODELS.stream().filter(m -> m.key().equals(modelKey)).findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Unknown model: " + modelKey));
+        var provider = providers.get(model.provider());
+        return provider != null && provider.configured();
     }
 
     public List<ModelConfiguration.Model> getAvailableModels() {

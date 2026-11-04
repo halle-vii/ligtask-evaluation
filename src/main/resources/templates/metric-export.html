@@ -1,0 +1,20 @@
+<!doctype html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<dialog id="metric-export-dialog" class="metric-export-dialog" th:fragment="dialog">
+  <div class="metric-export-heading"><h2>Export metric data</h2><button type="button" id="close-metric-export" aria-label="Close export dialog">×</button></div>
+  <p>Includes <strong>all seven models</strong>, separated by model. Exports every prompt matching the current filters, across all pages.</p>
+  <form method="get" th:action="${metricCsvUrl}">
+    <input type="hidden" name="task" th:value="${filters.task}"><input type="hidden" name="language" th:value="${filters.language}"><input type="hidden" name="context" th:value="${filters.context}"><input type="hidden" name="q" th:value="${filters.q}">
+    <label for="metric-export-run">Saved evaluations</label>
+    <select id="metric-export-run" name="run">
+      <option value="" th:selected="${selectedRunId == null}">Latest finished run for each model</option>
+      <option th:each="r:${exportRuns}" th:value="${r.id}" th:selected="${r.id == selectedRunId}" th:text="${r.status + ' · ' + r.created_at + ' · ' + r.id}"></option>
+    </select>
+    <p class="metric-export-note">A model's results always come from one run. Missing models stay in the export with blank results; no new evaluations are started.</p>
+    <div class="metric-export-actions"><button type="submit" th:formaction="@{/evaluation/{id}/metrics.zip(id=${datasetId})}">Download model CSVs (ZIP)</button><button type="submit" class="run-secondary-button">Download combined CSV</button></div>
+    <button type="submit" class="metric-codebook-button" th:formaction="${metricManifestUrl}">Download codebook</button>
+  </form>
+  <p class="metric-export-note"><strong>CSV:</strong> numerical inputs only, including model codes, binary labels, safety ratings, and response status. Query text, context text, explanations, and raw responses are excluded.</p>
+  <p class="metric-export-note"><strong>ZIP:</strong> a CSV per model, a combined CSV, and a codebook describing the numerical codes and source runs.</p>
+  <p class="metric-export-note">Human classifications come from gold.label and are exported as 0/1. Unrecognized or missing labels stay blank. Human mean safety scores come from gold.rating_mean. Positive-class probabilities are model self-reported estimates from new evaluations; legacy or missing values stay blank.</p>
+</dialog>
+</body></html>

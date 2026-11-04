@@ -64,7 +64,7 @@ for entry in source:
     for task, derivative in entry['task_derivatives'].items():
         identifier = f"{entry['base_id']}_{condition}_{task.upper()}_{entry['language'].upper()}"
         assert identifier not in expected
-        expected[identifier] = (derivative['input']['query'], condition, task.upper(), entry['language'].upper(), derivative['input'].get('context'))
+        expected[identifier] = (derivative['input']['query'], condition, task.upper(), entry['language'].upper(), derivative['input'].get('context'), derivative.get('gold', {}).get('label', '').strip())
 marker = 'sha256-' + hashlib.sha256(source_bytes).hexdigest()
 
 def verify_export(exported):
@@ -72,7 +72,7 @@ def verify_export(exported):
     assert len(rows) == len(expected)
     assert {r['instance_id'] for r in rows} == expected.keys()
     for row in rows:
-        query, condition, task, language, context = expected[row['instance_id']]
+        query, condition, task, language, context, human_label = expected[row['instance_id']]
         # The CSV display export neutralizes spreadsheet formulas; stored source text is unchanged.
         stripped = query.lstrip()
         if (stripped and stripped[0] in '=+-@') or query.startswith(('\t', '\r', '\n')):
@@ -83,7 +83,7 @@ def verify_export(exported):
             assert json.loads(row['context_text']) == context
         else:
             assert row['context_text'] == (context or '')
-        assert not row['human_label'] and not row['model_label']
+        assert row['human_label'] == human_label and not row['model_label']
         assert row['comparison_status'] == 'NOT_EVALUATED'
     return rows
 
@@ -122,6 +122,6 @@ try:
     rows_after = verify_export(exported_after)
     assert rows_before == rows_after
     assert before == after, 'Dataset page changed after restart'
-    print(f'PASS: HTTP import and restart persistence; {len(rows_after)} records; exact queries/context and blank human/model labels retained; same dataset URL: {url}')
+    print(f'PASS: HTTP import and restart persistence; {len(rows_after)} records; exact queries/context and gold.label human references retained; same dataset URL: {url}')
 finally:
     stop(proc)

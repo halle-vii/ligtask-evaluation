@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-@SpringBootTest(properties={"spring.datasource.url=${TEST_DB_URL:jdbc:postgresql://127.0.0.1:55432/ligtask_test}"})
+@SpringBootTest(properties={"ligtask.runs.worker-enabled=false","spring.datasource.url=${TEST_DB_URL:jdbc:postgresql://127.0.0.1:55432/ligtask_test}"})
 @AutoConfigureMockMvc
 class FoundationTest {
  @Autowired DatasetImporter importer; @Autowired ProvisionalJsonAdapter adapter; @Autowired DatasetStore store; @Autowired JdbcTemplate db; @Autowired MockMvc mvc;
@@ -21,7 +21,7 @@ class FoundationTest {
  @BeforeEach void clean(){
   String database=db.queryForObject("select current_database()",String.class);
   if(!database.endsWith("_test"))throw new IllegalStateException("Tests require a dedicated database ending _test");
-  db.execute("truncate prompt_instance,dataset_version");
+  db.execute("truncate evaluation_run_item,evaluation_response,evaluation_run,prompt_instance,dataset_version");
  }
  @Test void fullAndPartialCoverage() throws Exception {
   var d=adapter.parse(sample());assertThat(d.errors()).isEmpty();var c=Coverage.of(d.records());
@@ -51,6 +51,39 @@ class FoundationTest {
   mvc.perform(multipart("/preview").file(new MockMultipartFile("file",TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))).with(csrf())).andExpect(content().string(org.hamcrest.Matchers.containsString("already imported")));
   assertThat(store.all()).hasSize(1);
  }
+ @Test void uploadedDataSurvivesStorageAndBuildsTheExactEvaluationPreview() throws Exception {
+  byte[] bytes=TfgJsonAdapterTest.fixture().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  var expected=importer.parse(bytes);assertThat(expected.valid()).isTrue();
+  var session=new MockHttpSession();
+  mvc.perform(multipart("/preview").file(new MockMultipartFile("file","validation.json","application/json",bytes))
+   .session(session).with(csrf())).andExpect(status().isOk());
+  assertThat(store.all()).isEmpty();
+  var pending=(WebController.Pending)session.getAttribute("pending");
+  mvc.perform(post("/import").session(session).with(csrf()).param("token",pending.token()))
+   .andExpect(status().is3xxRedirection());
+  UUID id=(UUID)store.all().get(0).get("id");
+  var mapper=new ObjectMapper();
+  assertThat(mapper.readTree(store.dataset(id).get("raw_document").toString())).isEqualTo(expected.raw());
+  assertThat(store.dataset(id).get("source_sha256")).isEqualTo(store.hash(bytes));
+  var actual=store.records(id);assertThat(actual).hasSize(expected.records().size());
+  for(var original:expected.records()) {
+   var row=actual.stream().filter(r->r.get("instance_id").equals(original.path("instance_id").asText())).findFirst().orElseThrow();
+   for(String field:List.of("prepared_prompt_text","task_type","language_variant","context_text","context_condition","base_query_id"))
+    assertThat(row.get(field)).isEqualTo(original.path(field).asText());
+   assertThat(mapper.readTree(row.get("raw_record").toString())).isEqualTo(original);
+  }
+  var response=mvc.perform(get("/evaluation/"+id+"/runs")).andExpect(status().isOk()).andReturn();
+  var previews=(List<Map<String,String>>)response.getModelAndView().getModel().get("inputPreviews");
+  var builder=new ph.ligtask.llm.LigtaskPromptBuilderService(store,new ph.ligtask.llm.LigtaskPromptTemplate());
+  for(var preview:previews) {
+   var content=mapper.readTree(preview.get("content"));
+   var prepared=builder.prepareInput(id,preview.get("identifier"));
+   assertThat(content.path("evaluation_prompt").asText()).isEqualTo(prepared.prompt());
+   assertThat(content.path("prompt_sha256").asText()).isEqualTo(prepared.promptSha256());
+   assertThat(content.path("contract_version").asText()).isEqualTo(prepared.contractVersion());
+  }
+ }
+
  @Test void invalidUploadsAndCsrfCannotImport() throws Exception {
   var session=new MockHttpSession();
   mvc.perform(multipart("/preview").file(new MockMultipartFile("file",Files.readAllBytes(Path.of("samples/invalid-provisional.json")))).session(session).with(csrf())).andExpect(status().isOk()).andExpect(view().name("home")).andExpect(content().string(org.hamcrest.Matchers.containsString("Import blocked")));
@@ -84,7 +117,7 @@ class FoundationTest {
   mvc.perform(get("/evaluation")).andExpect(redirectedUrl("/evaluation/"+id));
   mvc.perform(get("/evaluation/"+id)).andExpect(status().isOk())
    .andExpect(content().string(org.hamcrest.Matchers.containsString("LIGTask Benchmark")))
-   .andExpect(content().string(org.hamcrest.Matchers.containsString("Claude-3.5-sonnet")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Claude-Sonnet-4.5")))
    .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("98.0%"))));
   var result=mvc.perform(get("/evaluation/"+id+"/models/claude-sonnet-4-5")
    .param("language","FIL").param("context","SAFE").param("task","NLU"))
@@ -221,7 +254,7 @@ class FoundationTest {
    .andExpect(content().string(org.hamcrest.Matchers.containsString("Task instruction")))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("Expected output format")))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("Derived task entry ID")))
-   .andExpect(content().string(org.hamcrest.Matchers.containsString("Not imported")));
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Not evaluated in this run")));
   var csv=mvc.perform(get("/evaluation/"+id+"/export.csv")).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
   assertThat(csv).doesNotContain("Replace or confirm", "SYNTHETIC instruction");
   assertThat(csv).contains("NOT_EVALUATED");
@@ -277,7 +310,7 @@ class FoundationTest {
    .andExpect(status().isOk()).andExpect(view().name("evaluation-runs"))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("data-prompt-count=\"12\"")))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"start-run\" disabled")))
-   .andExpect(content().string(org.hamcrest.Matchers.containsString("Execution not connected")))
+   .andExpect(content().string(org.hamcrest.Matchers.containsString("Ready to set up")))
    .andExpect(content().string(org.hamcrest.Matchers.containsString("No saved runs")))
    .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE_REFERENCE_NOT_MODEL_INPUT")))).andReturn();
   var previews=(List<Map<String,String>>)result.getModelAndView().getModel().get("inputPreviews");
@@ -288,7 +321,7 @@ class FoundationTest {
   assertThat(store.records(id)).hasSize(12);
  }
 
- @Test void switchingDatasetsStaysInRunsAndExistingResultsHaveSavedRunPlaceholder() throws Exception {
+ @Test void switchingDatasetsStaysInRunsAndResultsHaveAnEnabledRunSelector() throws Exception {
   UUID id=store.save(adapter.parse(sample()),sample(),"demo.json");
   byte[] partial=Files.readAllBytes(Path.of("samples/synthetic-partial.json"));
   UUID other=store.save(adapter.parse(partial),partial,"partial.json");
@@ -298,7 +331,7 @@ class FoundationTest {
   assertThat(result.getModelAndView().getModel().get("promptCount")).isEqualTo(24);
   for(String path:List.of("/evaluation/"+id,"/evaluation/"+id+"/models/gpt-4o")) {
    mvc.perform(get(path)).andExpect(status().isOk())
-    .andExpect(content().string(org.hamcrest.Matchers.containsString("No saved runs")))
+    .andExpect(content().string(org.hamcrest.Matchers.containsString("Select saved run")))
     .andExpect(content().string(org.hamcrest.Matchers.containsString("Manage runs")));
   }
  }

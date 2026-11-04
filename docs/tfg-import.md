@@ -42,7 +42,7 @@ Preview validates and counts the entire file, displaying the first 24 prepared r
 
 ## Interpretation and remaining research inputs
 
-The supplied `gold.reference_source` states that labels originate from the CASEBench contextual condition and must be replaced or confirmed through human annotation. All gold fields remain under `source_task.gold`; none populate human labels, model labels, or metrics. The app performs no model calls.
+Gold fields remain under `source_task.gold`. Earlier exports described labels as contextual metadata; the dataset owner has now confirmed that the selected task's `gold.label` is the human reference. `HumanReference` uses that field for the human-label display, task-valid binary encoding, classification metrics, and correctness analysis. This read mapping also works for existing imports without changing their stored source. The dataset owner also confirmed `gold.rating_mean` as the mean human safety score. Finite numeric means from 1 to 10 feed PCC and numerical exports; missing or invalid values remain unavailable. `gold.binary_rating` is a categorical integer encoding, not a safety score or probability; the system continues to derive its task-specific encoding from gold.label.
 
 Filipino query variants have supplied English context and English task instructions. The adapter preserves these as received and does not claim that entire inputs are translated or approved. Source queries and `source_query_en` are retained separately; they are not substituted for task-specific queries. No explicit policy text, translation review/approval provenance, or independent annotation records were found. Those remain unknown.
 

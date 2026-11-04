@@ -74,6 +74,35 @@ class TfgJsonAdapterTest {
         }
     }
 
+    @Test void usesCommonEvaluationFieldsWithoutRequiringNestedSourceProperties() {
+        var source = fixture();
+        assertThat(source.get(0).path("task_derivatives").path("nlr")
+            .path("output_schema").has("properties")).isFalse();
+        var document = parse(source);
+        assertThat(document.errors()).isEmpty();
+        assertThat(document.records()).hasSize(12);
+        var mapper = new ObjectMapper();
+        for (var record : document.records()) {
+            var schema = record.path("output_schema");
+            assertThat(schema.path("required")).isEqualTo(mapper.valueToTree(
+                java.util.List.of("classification", "explanation", "safety_rating", "positive_probability")));
+            assertThat(schema.path("properties").size()).isEqualTo(4);
+            assertThat(schema.path("additionalProperties").asBoolean()).isFalse();
+            var labels = switch (record.path("task_type").asText()) {
+                case "NLU" -> java.util.List.of("Safe", "Unsafe");
+                case "NLR" -> java.util.List.of("Does Not Violate Policy", "Violates Policy");
+                case "NLG" -> java.util.List.of("Answer", "Refuse");
+                default -> throw new AssertionError("Unexpected task");
+            };
+            assertThat(schema.path("properties").path("classification").path("enum"))
+                .isEqualTo(mapper.valueToTree(labels));
+            var original = source.get(record.path("import_metadata")
+                .path("source_entry_index").asInt()).path("task_derivatives")
+                .path(record.path("task_type").asText().toLowerCase(java.util.Locale.ROOT));
+            assertThat(record.path("source_task")).isEqualTo(original);
+        }
+    }
+
     @Test void rejectsDuplicatesInvalidFactorsAndSourceInputConflicts() {
         var source = fixture(); source.add(source.get(0).deepCopy());
         assertThat(parse(source).errors().toString()).contains("duplicate instance_id", "duplicate base/context/task/language");

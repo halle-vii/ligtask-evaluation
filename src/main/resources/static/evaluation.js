@@ -42,3 +42,22 @@ if (workspaceHeader) {
 document.querySelectorAll('.page-select').forEach(select => {
     select.addEventListener('change', () => select.form.requestSubmit());
 });
+
+const metricExportDialog = document.getElementById('metric-export-dialog');
+document.querySelectorAll('[data-open-metric-export]').forEach(link => {
+    link.addEventListener('click', event => {
+        if (!metricExportDialog?.showModal) return;
+        event.preventDefault();
+        metricExportDialog.showModal();
+    });
+});
+document.getElementById('close-metric-export')?.addEventListener('click', () => metricExportDialog.close());
+metricExportDialog?.addEventListener('click', event => {
+    if (event.target === metricExportDialog) {
+        const box = metricExportDialog.getBoundingClientRect();
+        if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) metricExportDialog.close();
+    }
+});
+
+const resultsRun = document.getElementById('results-run');
+resultsRun?.addEventListener('change', () => resultsRun.form.requestSubmit());

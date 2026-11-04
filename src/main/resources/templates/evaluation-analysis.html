@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{evaluation-parts :: head('Statistical analysis')}"></head>
+<body class="eval-app">
+<header th:replace="~{evaluation-parts :: top}"></header>
+<div class="eval-shell">
+  <nav th:replace="~{evaluation-parts :: navigation('analysis')}"></nav>
+  <main class="eval-main analysis-main">
+    <div class="analysis-heading"><div><h1>Statistical analysis</h1><p class="muted">How context, language, and task affect each model.</p></div>
+      <a class="export-button" th:href="@{/evaluation/{id}/analysis.json(id=${datasetId},run=${analysisRunId})}">Export analysis JSON</a>
+    </div>
+    <form class="analysis-run-picker" method="get" th:action="${analysisUrl}">
+      <label for="analysis-run">Saved run</label>
+      <select id="analysis-run" name="run" th:disabled="${#lists.isEmpty(analysisRuns)}">
+        <option th:if="${#lists.isEmpty(analysisRuns)}">No finished runs available</option>
+        <option th:each="r:${analysisRuns}" th:value="${r.id}" th:selected="${r.id == analysisRunId}" th:text="${r.status + ' · ' + r.created_at + ' · ' + r.id}"></option>
+      </select>
+      <button type="submit" class="run-secondary-button" th:disabled="${#lists.isEmpty(analysisRuns)}">Analyze saved run</button>
+      <a th:href="${runsUrl}">Manage runs</a>
+    </form>
+    <div class="analysis-scope"><span><strong>Design:</strong> Context × Language × Task (2 × 2 × 3)</span><span><strong>Models:</strong> 7, analyzed separately</span><span><strong>Threshold:</strong> α = 0.05</span></div>
+    <div class="availability analysis-readiness" role="status">
+      <strong th:text="${analysisRunId == null ? 'Select a finished evaluation run to begin.' : 'Analysis uses this saved run only.'}"></strong>
+      <p>Correctness uses the dataset's gold.label human classifications. Each analysis needs at least 30 complete base queries per model, with all 12 context, language, and task combinations.</p>
+      <p>Reading or analyzing saved responses uses no model tokens.</p>
+    </div>
+
+    <section class="run-card analysis-section" th:each="table,tableIndex:${analysis.tables}">
+      <div class="analysis-table-heading"><h2 th:text="${'Table ' + (tableIndex.index + 1) + '. ' + table.title}"></h2><span class="analysis-p-label">Adjusted p-values</span></div>
+      <p class="analysis-question" th:text="${table.key == 'correctness' ? 'Does agreement with the human label change across conditions?' : 'Does the model assign different safety ratings across conditions?'}"></p>
+      <p class="analysis-method" th:text="${table.method}"></p>
+      <div class="table-wrap analysis-table"><table>
+        <caption class="sr-only" th:text="${table.title + ': separate effect tests for the seven study models'}"></caption>
+        <thead><tr><th scope="col">Model</th><th scope="col">Complete bases</th><th scope="col" th:each="effect:${analysisEffects}" th:text="${effect}"></th></tr></thead>
+        <tbody><tr th:each="row:${table.rows}">
+          <th scope="row"><span class="analysis-model-name" th:text="${row.name}"></span><small class="analysis-row-reason" th:if="${!#strings.isEmpty(row.reason)}" th:text="${row.reason}"></small></th>
+          <td class="analysis-number" th:text="${row.complete_bases}"></td>
+          <td class="analysis-number" th:each="effect:${row.effects}"><span th:text="${effect.display}" th:classappend="${effect.significant ? 'analysis-significant' : ''}" th:title="${effect.reason}"></span><span class="sr-only" th:if="${effect.significant}"> — below the adjusted significance threshold</span></td>
+        </tr></tbody>
+      </table></div>
+      <p class="analysis-table-note" th:if="${table.key == 'correctness'}">Correct means the model classification matches the finalized human classification. Missing references and failed responses are excluded.</p>
+      <p class="analysis-table-note" th:if="${table.key == 'ratings'}">Ratings use the model's 1–10 scale. Higher ratings mean the model judged the prompt safer; they do not establish correctness or agreement with humans.</p>
+      <details class="analysis-details"><summary>Sample counts, condition averages, and detailed tests</summary>
+        <div th:each="row:${table.rows}" class="analysis-model-detail">
+          <h3 th:text="${row.name}"></h3>
+          <p><span th:text="${row.saved_items}"></span> saved items · <span th:text="${row.included_prompts}"></span> included prompts · <span th:text="${row.complete_bases}"></span> complete base queries · <span th:text="${row.excluded_items}"></span> excluded items</p>
+          <p th:if="${!#strings.isEmpty(row.reason)}" class="muted" th:text="${row.reason}"></p>
+          <div class="table-wrap" th:if="${!#lists.isEmpty(row.descriptives)}"><table><thead><tr><th>Context</th><th>Language</th><th>Task</th><th>N</th><th th:text="${table.key == 'correctness' ? 'Proportion correct' : 'Mean rating'}"></th><th>SD</th></tr></thead><tbody><tr th:each="cell:${row.descriptives}"><td th:text="${cell.context}"></td><td th:text="${cell.language}"></td><td th:text="${cell.task}"></td><td th:text="${cell.n}"></td><td th:text="${#numbers.formatDecimal(cell.mean,1,3)}"></td><td th:text="${cell.sd == null ? 'N/A' : #numbers.formatDecimal(cell.sd,1,3)}"></td></tr></tbody></table></div>
+          <div class="table-wrap analysis-test-details"><table><thead><tr><th>Effect</th><th th:text="${table.key == 'correctness' ? 'Wald χ²' : 'F'}"></th><th>DF</th><th th:if="${table.key == 'ratings'}">Error DF</th><th>Raw p</th><th>Adjusted p</th><th th:if="${table.key == 'ratings'}">GG ε</th><th th:if="${table.key == 'ratings'}">Partial η²</th><th th:if="${table.key == 'ratings'}">Residual diagnostic p</th></tr></thead>
+            <tbody><tr th:each="effect:${row.effects}"><td th:text="${effect.name}"></td><td th:text="${effect.statistic == null ? 'N/A' : #numbers.formatDecimal(effect.statistic,1,3)}"></td><td th:text="${effect.df == null ? 'N/A' : #numbers.formatDecimal(effect.df,1,3)}"></td><td th:if="${table.key == 'ratings'}" th:text="${effect.df_error == null ? 'N/A' : #numbers.formatDecimal(effect.df_error,1,3)}"></td><td th:text="${effect.p == null ? 'N/A' : #numbers.formatDecimal(effect.p,1,6)}"></td><td th:text="${effect.display}"></td><td th:if="${table.key == 'ratings'}" th:text="${effect.epsilon == null ? 'N/A' : #numbers.formatDecimal(effect.epsilon,1,3)}"></td><td th:if="${table.key == 'ratings'}" th:text="${effect.partial_eta_squared == null ? 'N/A' : #numbers.formatDecimal(effect.partial_eta_squared,1,3)}"></td><td th:if="${table.key == 'ratings'}" th:text="${effect.residual_shapiro_min_p == null ? 'N/A' : #numbers.formatDecimal(effect.residual_shapiro_min_p,1,4)}"></td></tr></tbody>
+          </table></div>
+        </div>
+      </details>
+    </section>
+
+    <details class="analysis-details"><summary>How to read the tables</summary>
+      <p>Each cell tests an effect within one model. A p-value describes evidence of a difference; condition averages describe its direction. These tables do not test whether one model is better than another.</p>
+      <dl class="analysis-effect-guide"><dt>Context</dt><dd>Does the outcome differ between SAFE and UNSAFE contexts?</dd><dt>Language</dt><dd>Does it differ between English and Filipino?</dd><dt>Task</dt><dd>Does it differ across NLU, NLR, and NLG?</dd><dt>C × L</dt><dd>Does the language difference change depending on context?</dd><dt>C × T</dt><dd>Does the context difference change depending on task?</dd><dt>L × T</dt><dd>Does the language difference change depending on task?</dd><dt>C × L × T</dt><dd>Does the context–language relationship change across tasks?</dd></dl>
+      <p>Bold p-values are below 0.05 after adjustment. Interpret interactions before drawing conclusions from main effects. A significant effect does not identify which particular pair of conditions differs.</p>
+    </details>
+    <details class="analysis-details"><summary>Methods, exclusions, and limitations</summary>
+      <p>Each model is analyzed separately using one finished saved run. The same base query is the repeated unit across the 12 conditions. Only complete sets enter each outcome's analysis; no values are filled in, and results from different runs are not pooled. The 30-base minimum is an application readiness rule, not a statistical power guarantee.</p>
+      <p>Correctness uses binomial generalized estimating equations (GEE), clustering on base query, with sum-coded factors, independent working correlation, and bias-reduced covariance. Each effect uses a joint Wald chi-square test. It is not labeled ANOVA because correctness is binary.</p>
+      <p>Model safety ratings use balanced repeated-measures ANOVA with an effect-specific Greenhouse–Geisser correction to the degrees of freedom. This treats the 1–10 ratings as approximately continuous. Review the contrast-residual diagnostics and this assumption before thesis reporting. The residual diagnostic is the smallest Shapiro–Wilk p-value among an effect's contrast dimensions; it is not an automatic pass/fail decision.</p>
+      <p>Holm adjustment covers 98 planned tests: seven effects × seven models × two outcomes. Unavailable tests remain in the family with p = 1. Missing inputs, insufficient samples, zero error variance, singular covariance, or failed fits show N/A.</p>
+      <p>The implemented methods clarify the manuscript's three-factor analysis for repeated queries. Confirm these statistical-treatment details with your adviser before using the results as final thesis findings. Follow-up pairwise comparisons are not included in these omnibus tables.</p>
+      <p><strong>Plan version:</strong> <span th:text="${analysis.version}"></span> · <strong>Generated:</strong> <span th:text="${analysis.generated_label}"></span></p>
+    </details>
+  </main>
+</div>
+</body>
+</html>

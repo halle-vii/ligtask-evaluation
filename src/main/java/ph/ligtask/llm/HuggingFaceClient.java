@@ -33,6 +33,10 @@ public class HuggingFaceClient implements LlmProvider {
         return ModelConfiguration.Provider.HUGGINGFACE;
     }
 
+    @Override public String redactError(String text) { return configured() ? text.replace(apiKey, "[REDACTED]") : text; }
+
+    @Override public boolean configured() { return apiKey != null && !apiKey.isBlank(); }
+
     @Override
     public LlmResponse generate(LlmRequest request) {
 

@@ -9,7 +9,7 @@ import java.security.MessageDigest;
 import java.util.*;
 
 /** TFG source array -> application records.
- * Source gold is retained and never used as human labels.
+ * Source gold is retained; HumanReference reads the confirmed gold.label mapping.
  */
 @Component
 public class TfgJsonAdapter {
@@ -200,7 +200,7 @@ public class TfgJsonAdapter {
                     // Generate the LIGTask-specific output schema.
                     record.set(
                         "output_schema",
-                        buildLigtaskOutputSchema(task, derivative)
+                        ph.ligtask.llm.LigtaskOutputContract.schema(task.toUpperCase(Locale.ROOT))
                     );
 
                     // Retain the original source entry and annotations.
@@ -243,105 +243,6 @@ public class TfgJsonAdapter {
             errors,
             validated.warnings()
         );
-    }
-
-    /**
-     * Generates the standardized LIGTask evaluation output schema.
-     */
-    private ObjectNode buildLigtaskOutputSchema(
-        String task,
-        JsonNode derivative
-    ) {
-
-        ObjectNode schema = mapper.createObjectNode();
-
-        schema.put("type", "object");
-        schema.put("additionalProperties", false);
-
-        ObjectNode properties = schema.putObject("properties");
-
-        // Common classification field
-        ObjectNode classification =
-            properties.putObject("classification");
-
-        classification.put("type", "string");
-
-        ArrayNode allowedLabels = classification.putArray("enum");
-
-        switch (task.toLowerCase(Locale.ROOT)) {
-
-            case "nlu" -> {
-                allowedLabels.add("Safe");
-                allowedLabels.add("Unsafe");
-            }
-
-            case "nlr" -> {
-                allowedLabels.add("Does Not Violate Policy");
-                allowedLabels.add("Violates Policy");
-            }
-
-            case "nlg" -> {
-                allowedLabels.add("Answer");
-                allowedLabels.add("Refuse");
-            }
-
-            default -> throw new IllegalArgumentException(
-                "Unsupported task type: " + task
-            );
-        }
-
-        // Common explanation field
-        properties.putObject("explanation")
-            .put("type", "string");
-
-        // Common safety rating field
-        ObjectNode safetyRating =
-            properties.putObject("safety_rating");
-
-        safetyRating.put("type", "integer");
-        safetyRating.put("minimum", 1);
-        safetyRating.put("maximum", 10);
-
-        // Preserve original NLR argument-mining field definitions.
-        if (task.equalsIgnoreCase("nlr")) {
-
-            JsonNode originalProperties =
-                derivative.path("output_schema").path("properties");
-
-            for (String field : List.of(
-                    "claim",
-                    "supporting_arguments",
-                    "counterarguments",
-                    "relationships")) {
-
-                JsonNode definition = originalProperties.path(field);
-
-                if (!definition.isObject()) {
-                    throw new IllegalArgumentException(
-                        "Original NLR schema is missing the definition for: "
-                        + field
-                    );
-                }
-
-                properties.set(field, definition.deepCopy());
-            }
-        }
-
-        // Require all defined output fields.
-        ArrayNode required = schema.putArray("required");
-
-        required.add("classification");
-        required.add("explanation");
-        required.add("safety_rating");
-
-        if (task.equalsIgnoreCase("nlr")) {
-            required.add("claim");
-            required.add("supporting_arguments");
-            required.add("counterarguments");
-            required.add("relationships");
-        }
-
-        return schema;
     }
 
     private String text(
