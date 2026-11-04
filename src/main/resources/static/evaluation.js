@@ -1,8 +1,37 @@
 const chooser = document.getElementById('dataset-choice');
 if (chooser) chooser.addEventListener('change', () => window.location.assign(chooser.value));
 
-const focusFilters = document.querySelector('.filter-focus');
-if (focusFilters) focusFilters.addEventListener('click', () => document.querySelector('#filters input')?.focus());
+const filterToggle = document.getElementById('toggle-prompt-filters');
+const filterPanel = document.getElementById('prompt-filter-panel');
+const resultsLayout = document.querySelector('.results-layout');
+if (filterToggle && filterPanel && resultsLayout) {
+    const activeCount = Number(filterToggle.dataset.activeCount || 0);
+    function setFiltersExpanded(expanded, remember = false) {
+        filterPanel.hidden = !expanded;
+        resultsLayout.dataset.filtersCollapsed = String(!expanded);
+        filterToggle.setAttribute('aria-expanded', String(expanded));
+        const label = `${expanded ? 'Hide' : 'Show'} filters${activeCount ? `, ${activeCount} active` : ''}`;
+        filterToggle.setAttribute('aria-label', label);
+        filterToggle.title = label;
+        if (!expanded && filterPanel.contains(document.activeElement)) filterToggle.focus();
+        if (remember) {
+            try { localStorage.setItem('ligtask.promptFilters', expanded ? 'expanded' : 'collapsed'); }
+            catch (_) { /* Filtering still works when storage is unavailable. */ }
+        }
+    }
+    let preference = null;
+    try { preference = localStorage.getItem('ligtask.promptFilters'); } catch (_) { /* Use the responsive default. */ }
+    const defaultExpanded = activeCount > 0 || !window.matchMedia('(max-width: 1200px)').matches;
+    setFiltersExpanded(preference === 'expanded' || (preference !== 'collapsed' && defaultExpanded));
+    filterToggle.hidden = false;
+    filterToggle.addEventListener('click', () => setFiltersExpanded(filterPanel.hidden, true));
+    filterPanel.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setFiltersExpanded(false, true);
+        }
+    });
+}
 
 const sidebarToggle = document.querySelector('.sidebar-toggle');
 function reflectSidebarState() {

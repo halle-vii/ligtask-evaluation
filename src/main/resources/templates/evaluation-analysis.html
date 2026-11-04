@@ -6,7 +6,7 @@
 <div class="eval-shell">
   <nav th:replace="~{evaluation-parts :: navigation('analysis')}"></nav>
   <main class="eval-main analysis-main">
-    <div class="analysis-heading"><div><h1>Statistical analysis</h1><p class="muted">How context, language, and task affect each model.</p></div>
+    <div class="analysis-heading"><div><h1>Statistical analysis</h1></div>
       <a class="export-button" th:href="@{/evaluation/{id}/analysis.json(id=${datasetId},run=${analysisRunId})}">Export analysis JSON</a>
     </div>
     <form class="analysis-run-picker" method="get" th:action="${analysisUrl}">
@@ -19,11 +19,6 @@
       <a th:href="${runsUrl}">Manage runs</a>
     </form>
     <div class="analysis-scope"><span><strong>Design:</strong> Context × Language × Task (2 × 2 × 3)</span><span><strong>Models:</strong> 7, analyzed separately</span><span><strong>Threshold:</strong> α = 0.05</span></div>
-    <div class="availability analysis-readiness" role="status">
-      <strong th:text="${analysisRunId == null ? 'Select a finished evaluation run to begin.' : 'Analysis uses this saved run only.'}"></strong>
-      <p>Correctness uses the dataset's gold.label human classifications. Each analysis needs at least 30 complete base queries per model, with all 12 context, language, and task combinations.</p>
-      <p>Reading or analyzing saved responses uses no model tokens.</p>
-    </div>
 
     <section class="run-card analysis-section" th:each="table,tableIndex:${analysis.tables}">
       <div class="analysis-table-heading"><h2 th:text="${'Table ' + (tableIndex.index + 1) + '. ' + table.title}"></h2><span class="analysis-p-label">Adjusted p-values</span></div>

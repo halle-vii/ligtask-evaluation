@@ -69,3 +69,7 @@ details.coverage-disclosure{margin:0;padding:12px 0;border:0;border-bottom:1px s
 .restore-dataset-button{padding:7px 12px;border-radius:7px;background:#e8edff;color:#15358f;font-size:12px}.restore-dataset-button:hover{background:#d9e2ff;color:#0f246f}
 .removed-datasets{margin-top:20px}.removed-datasets>summary{font-size:13px;color:#687181}.removed-datasets .table-wrap{margin-top:14px}.dataset-feedback{font-size:13px;color:#31614d;margin:20px 0}
 .removal-dataset-name{font-weight:600;color:#0f246f;overflow-wrap:anywhere}.removal-actions{gap:12px}.cancel-removal{background:#eef1f6;color:#536074}.cancel-removal:hover{background:#e2e7f0;color:#202735}.confirm-removal{background:#aa3838}.confirm-removal:hover{background:#8f2d2d}
+
+.site-top>a:not(.brand),.eval-top>a:not(.brand){padding:8px 12px;border-radius:8px;white-space:nowrap}
+.site-top>a:not(.brand):hover,.eval-top>a:not(.brand):hover{background:#f0f3ff}
+.site-top>a[aria-current=page]:not(.brand),.eval-top>a[aria-current=page]:not(.brand){background:#e8edff;color:#173fc5;font-weight:700}

@@ -46,7 +46,7 @@ class RunPageTest {
         String html=mvc.perform(get("/evaluation/"+dataset+"/analysis"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(html).contains("Statistical analysis", "aria-current=\"page\"", "Table 1. Correctness", "Table 2. Model safety ratings",
-            "No finished runs available", "gold.label human classifications", "Repeated-measures ANOVA", "Binomial GEE", "Holm", "C × L × T", "N/A");
+            "No finished runs available", "Repeated-measures ANOVA", "Binomial GEE", "Holm", "C × L × T", "N/A");
         for(var choice:EvaluationView.MODELS) assertThat(html).contains(choice.name());
         verifyNoInteractions(builder); verify(coordinator,never()).start(any(),any());
     }
