@@ -57,10 +57,10 @@ public final class ModelConfiguration {
             "dphn/dolphin-2.9-llama3-70b"
         ),
         new Model(
-            "mixtral-8x7b",
-            "Mixtral 8x7B",
-            Provider.HUGGINGFACE,
-            "mistralai/Mixtral-8x7B-Instruct-v0.1"
+            "mistral-small-2603",
+            "Mistral Small 4",
+            Provider.OPENROUTER,
+            "mistralai/mistral-small-2603"
         )
     );
 }

@@ -30,6 +30,7 @@ public class LigtaskPromptBuilderService {
 
     public String buildPrompt(UUID datasetId, String instanceId) {
 
+        // 1. Retrieve the selected dataset record
         Map<String, Object> record = datasetStore.records(datasetId)
             .stream()
             .filter(row -> instanceId.equals(
@@ -40,18 +41,33 @@ public class LigtaskPromptBuilderService {
                 "Dataset instance not found: " + instanceId
             ));
 
+        // 2. Retrieve evaluation information
+        String taskType = required(record, "task_type").toUpperCase();
         String query = required(record, "prepared_prompt_text");
         String language = required(record, "language_variant");
         String context = optional(record, "context_text");
+        String policy = optional(record, "policy_text");
         String rawRecordText = required(record, "raw_record");
 
+        // 3. Validate task type
+        if (!taskType.equals("NLU")
+                && !taskType.equals("NLR")
+                && !taskType.equals("NLG")) {
+            throw new IllegalArgumentException(
+                "Unsupported task type: " + taskType
+            );
+        }
+
         try {
+
+            // 4. Read task-specific instruction and output schema
             JsonNode rawRecord = mapper.readTree(rawRecordText);
 
             String instruction =
                 rawRecord.path("task_instruction").asText();
 
-            JsonNode schemaNode = rawRecord.path("output_schema");
+            JsonNode schemaNode =
+                rawRecord.path("output_schema");
 
             if (instruction.isBlank()) {
                 throw new IllegalArgumentException(
@@ -59,9 +75,7 @@ public class LigtaskPromptBuilderService {
                 );
             }
 
-            if (schemaNode.isMissingNode()
-                    || schemaNode.isNull()
-                    || schemaNode.isEmpty()) {
+            if (!schemaNode.isObject() || schemaNode.isEmpty()) {
                 throw new IllegalArgumentException(
                     "Missing output_schema in dataset record."
                 );
@@ -69,11 +83,14 @@ public class LigtaskPromptBuilderService {
 
             String outputSchema = schemaNode.toPrettyString();
 
+            // 5. Generate the final evaluation prompt
             return promptTemplate.buildPrompt(
+                taskType,
                 instruction,
                 query,
                 language,
                 context,
+                policy,
                 outputSchema
             );
 
